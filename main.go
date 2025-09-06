@@ -157,7 +157,7 @@ func main() {
 			return
 		default:
 			fmt.Println("invalid move")
-			os.Exit(1)
+			return
 		}
 		clear()
 		b.print()
