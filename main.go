@@ -25,6 +25,8 @@ const (
 	right
 )
 
+var over bool = false
+
 var oldState *term.State
 
 type Board struct {
@@ -131,7 +133,8 @@ func (b *Board) moveDown() {
 	if b.headCol >= b.cols || b.headRow >= b.rows || b.headRow <= 0 || b.headCol <= 0 {
 		term.Restore(int(os.Stdin.Fd()), oldState)
 		fmt.Println("You lost")
-		os.Exit(0)
+		over = true
+		return
 	}
 
 	b.headRow++
@@ -153,7 +156,8 @@ func (b *Board) moveUp() {
 	if b.headCol >= b.cols || b.headRow >= b.rows || b.headRow <= 0 || b.headCol <= 0 {
 		term.Restore(int(os.Stdin.Fd()), oldState)
 		fmt.Println("You lost")
-		os.Exit(0)
+		over = true
+		return
 	}
 
 	b.headRow--
@@ -178,7 +182,8 @@ func (b *Board) moveLeft() {
 	if b.headCol >= b.cols || b.headRow >= b.rows || b.headRow <= 0 || b.headCol <= 0 {
 		term.Restore(int(os.Stdin.Fd()), oldState)
 		fmt.Println("You lost")
-		os.Exit(0)
+		over = true
+		return
 	}
 
 	b.headCol--
@@ -204,7 +209,8 @@ func (b *Board) moveRight() {
 	if b.headCol >= b.cols || b.headRow >= b.rows || b.headRow <= 0 || b.headCol <= 0 {
 		term.Restore(int(os.Stdin.Fd()), oldState)
 		fmt.Println("You lost")
-		os.Exit(0)
+		over = true
+		return
 	}
 
 	b.headCol++
@@ -234,13 +240,13 @@ func main() {
 	clear()
 	b.print()
 	oldState, _ = term.MakeRaw(int(os.Stdin.Fd()))
+	defer term.Restore(int(os.Stdin.Fd()), oldState)
 	// if err != nil {
 	// panic(err)
 	// }
 
 	buf := make([]byte, 1)
 	var move string
-
 	go func() {
 		for {
 			os.Stdin.Read(buf)
@@ -264,13 +270,16 @@ func main() {
 					b.direction = left
 				}
 			default:
-				term.Restore(int(os.Stdin.Fd()), oldState)
-				os.Exit(0)
+				over = true
+				return
 			}
 		}
 	}()
 
 	for {
+		if over {
+			break
+		}
 		b.move()
 		clear()
 		b.print()
