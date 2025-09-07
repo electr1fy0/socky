@@ -25,7 +25,7 @@ const (
 	right
 )
 
-var over bool = false
+var over, lost bool = false, false
 
 var oldState *term.State
 
@@ -38,6 +38,7 @@ type Board struct {
 	snakeSize        int
 	direction        Direction
 	foodRow, foodCol int
+	score            int
 }
 
 type Point struct {
@@ -76,6 +77,7 @@ func (b *Board) init(rows, cols int) {
 
 	b.grid[x][y] = '⊗'
 	b.direction = right
+	b.score = 0
 }
 
 func (b *Board) generateFood() {
@@ -129,11 +131,10 @@ func (b *Board) print() {
 }
 
 func (b *Board) moveDown() {
-
 	if b.headCol >= b.cols || b.headRow >= b.rows || b.headRow <= 0 || b.headCol <= 0 {
 		term.Restore(int(os.Stdin.Fd()), oldState)
-		fmt.Println("You lost")
 		over = true
+		lost = true
 		return
 	}
 
@@ -145,6 +146,7 @@ func (b *Board) moveDown() {
 	}
 	b.snake[n-1].x = b.headRow
 	if b.headRow == b.foodRow && b.headCol == b.foodCol {
+		b.score++
 		b.grid[b.foodRow][b.foodCol] = '.'
 		b.snake = append([]Point{{x: b.tailRow, y: b.tailCol}}, b.snake...)
 		go b.generateFood()
@@ -155,7 +157,7 @@ func (b *Board) moveUp() {
 
 	if b.headCol >= b.cols || b.headRow >= b.rows || b.headRow <= 0 || b.headCol <= 0 {
 		term.Restore(int(os.Stdin.Fd()), oldState)
-		fmt.Println("You lost")
+		lost = true
 		over = true
 		return
 	}
@@ -172,6 +174,8 @@ func (b *Board) moveUp() {
 	b.snake[n-1].x = b.headRow
 
 	if b.headRow == b.foodRow && b.headCol == b.foodCol {
+		b.score++
+
 		b.grid[b.foodRow][b.foodCol] = '.'
 		b.snake = append([]Point{{x: b.tailRow, y: b.tailCol}}, b.snake...)
 		go b.generateFood()
@@ -181,8 +185,8 @@ func (b *Board) moveUp() {
 func (b *Board) moveLeft() {
 	if b.headCol >= b.cols || b.headRow >= b.rows || b.headRow <= 0 || b.headCol <= 0 {
 		term.Restore(int(os.Stdin.Fd()), oldState)
-		fmt.Println("You lost")
 		over = true
+		lost = true
 		return
 	}
 
@@ -198,6 +202,8 @@ func (b *Board) moveLeft() {
 	b.snake[n-1].y = b.headCol
 
 	if b.headRow == b.foodRow && b.headCol == b.foodCol {
+		b.score++
+
 		b.grid[b.foodRow][b.foodCol] = '.'
 		b.snake = append([]Point{{x: b.tailRow, y: b.tailCol}}, b.snake...)
 
@@ -208,8 +214,9 @@ func (b *Board) moveLeft() {
 func (b *Board) moveRight() {
 	if b.headCol >= b.cols || b.headRow >= b.rows || b.headRow <= 0 || b.headCol <= 0 {
 		term.Restore(int(os.Stdin.Fd()), oldState)
-		fmt.Println("You lost")
+
 		over = true
+		lost = true
 		return
 	}
 
@@ -223,6 +230,7 @@ func (b *Board) moveRight() {
 	}
 	b.snake[n-1].y = b.headCol
 	if b.headRow == b.foodRow && b.headCol == b.foodCol {
+		b.score++
 		b.grid[b.foodRow][b.foodCol] = '.'
 		b.snake = append([]Point{{x: b.tailRow, y: b.tailCol}}, b.snake...)
 		go b.generateFood()
@@ -239,11 +247,12 @@ func main() {
 	b.init(40, 60)
 	clear()
 	b.print()
-	oldState, _ = term.MakeRaw(int(os.Stdin.Fd()))
+	var err error
+	oldState, err = term.MakeRaw(int(os.Stdin.Fd()))
 	defer term.Restore(int(os.Stdin.Fd()), oldState)
-	// if err != nil {
-	// panic(err)
-	// }
+	if err != nil {
+		panic(err)
+	}
 
 	buf := make([]byte, 1)
 	var move string
@@ -278,6 +287,10 @@ func main() {
 
 	for {
 		if over {
+			if lost {
+				fmt.Println("You lose")
+			}
+			fmt.Println("Score: ", b.score)
 			break
 		}
 		b.move()
