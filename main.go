@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"os"
 
@@ -42,34 +41,11 @@ func main() {
 		os.Stdin.Read(buf)
 		// move = strings.ToLower(string(buf))
 		conn.WriteMessage(websocket.TextMessage, buf)
-		_, msg, _ := conn.ReadMessage()
-		fmt.Println(string(msg))
+		// _, msg, _ := conn.ReadMessage()
+		// fmt.Println(string(msg))
 		if string(buf) == "q" {
 			return
 		}
-		// switch move {
-
-		// case "k":
-		// 	if b.direction != down {
-		// 		b.direction = up
-		// 	}
-		// case "j":
-		// 	if b.direction != up {
-		// 		b.direction = down
-		// 	}
-		// case "l":
-		// 	if b.direction != left {
-		// 		b.direction = right
-		// 	}
-
-		// case "h":
-		// 	if b.direction != right {
-		// 		b.direction = left
-		// 	}
-		// default:
-		// 	over = true
-		// 	return
-		// }
 	}
 	// }()
 

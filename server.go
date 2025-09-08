@@ -14,7 +14,7 @@ import (
 
 const (
 	MIN        = 5
-	tickRate   = 200 * time.Millisecond
+	tickRate   = 300 * time.Millisecond
 	foodPeriod = 4 * time.Second
 )
 
@@ -108,16 +108,16 @@ func (b *Board) init(rows, cols int) {
 
 func (b *Board) initSnake(s *Snake) {
 	snakelength := 0
-	for i := b.rows / 2; i < b.rows; i++ {
-		for j := 2; j < b.cols; j++ {
-			s.body[snakelength] = Point{i, j}
-			snakelength++
-			if snakelength == MIN {
-				s.head = Point{i, j}
-				b.snakeCount++
-				return
-			}
+	i := b.rows / 2
+	for j := 2; j < b.cols; j++ {
+		s.body[snakelength] = Point{i + b.snakeCount, j}
+		snakelength++
+		if snakelength == MIN {
+			s.head = Point{i + b.snakeCount, j}
+			b.snakeCount++
+			return
 		}
+
 	}
 }
 
@@ -127,7 +127,7 @@ func (b *Board) update() {
 
 		if s.head == b.food {
 			s.score++
-			s.body = append([]Point{{}}, s.body...)
+			// s.body = append([]Point{{}}, s.body...)
 			b.generateFood()
 		}
 	}
@@ -140,11 +140,12 @@ func (b *Board) print() {
 		for j := range b.cols {
 			printed := false
 			if b.snakeCount != 0 {
-				for _, point := range b.snakes[0].body {
-
-					if point.x == i && point.y == j {
-						output.WriteString("◉")
-						printed = true
+				for _, snake := range b.snakes {
+					for _, point := range snake.body {
+						if point.x == i && point.y == j {
+							output.WriteString("◉ ")
+							printed = true
+						}
 					}
 				}
 			}
@@ -251,8 +252,6 @@ func main() {
 				b.update()
 				clear()
 				b.print()
-			case <-foodTick.C:
-				b.generateFood()
 			}
 		}
 	}()
