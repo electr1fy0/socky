@@ -1,9 +1,10 @@
 package main
 
-// This is separate from the rest of the repo
-// Run this independently
+// This is not a part of the server module
+// Run this independently to connect to the servers
 
 import (
+	"fmt"
 	"log"
 	"os"
 
@@ -23,6 +24,10 @@ var err error
 var url = "ws://localhost:8080"
 var conn *websocket.Conn
 
+func clear() {
+	fmt.Printf("\033[H\033[2J")
+}
+
 func main() {
 	conn, _, err := websocket.DefaultDialer.Dial(url, nil)
 	if err != nil {
@@ -38,12 +43,29 @@ func main() {
 	}
 
 	buf := make([]byte, 1)
+	over := false
+	go func() {
+		for {
+			os.Stdin.Read(buf)
+			conn.WriteMessage(websocket.TextMessage, buf)
+			if string(buf) == "q" {
+				over = true
+				return
+			}
+
+		}
+	}()
 
 	for {
-		os.Stdin.Read(buf)
-		conn.WriteMessage(websocket.TextMessage, buf)
-		if string(buf) == "q" {
-			return
+		_, msg, err := conn.ReadMessage()
+		if err != nil {
+			fmt.Println("Error reading msg:", err)
+		}
+		clear()
+		fmt.Print(string(msg))
+		if over {
+			break
 		}
 	}
+
 }

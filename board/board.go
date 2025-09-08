@@ -12,11 +12,9 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-// TODO: make members that shouldn't be exported lower case again
-
 const (
 	Min        = 5
-	TickRate   = 300 * time.Millisecond
+	TickRate   = 150 * time.Millisecond
 	FoodPeriod = 4 * time.Second
 )
 
@@ -82,6 +80,7 @@ type Board struct {
 	Snakes     []*Snake
 	Grid       [][]rune
 	SnakeCount int
+	Clients    []*Client
 }
 
 func (b *Board) GenerateFood() {
@@ -137,7 +136,7 @@ func (b *Board) Update() {
 	}
 }
 
-func (b *Board) Print() {
+func (b *Board) Print() string {
 	var output strings.Builder
 
 	for i := 0; i < b.Rows; i++ {
@@ -160,7 +159,11 @@ func (b *Board) Print() {
 		output.WriteString("\n\r")
 	}
 
-	fmt.Print(output.String())
+	return output.String()
+}
+
+func (b *Board) BroadCast() {
+
 }
 
 func Clear() {
@@ -192,13 +195,25 @@ func (b *Board) Run(w http.ResponseWriter, r *http.Request) {
 	client := &Client{
 		Conn: conn, ID: r.RemoteAddr,
 	}
-	// TODO: implement connection closure upon losing
 	client.Snake.Init()
 
 	clientsMu.Lock()
 	b.Snakes = append(b.Snakes, &client.Snake)
 	b.InitSnake(&client.Snake)
 	clientsMu.Unlock()
+
+	// TODO: make a central broadcasting fn later that's synchronous with the update ticker
+	go func() {
+		ticker := time.NewTicker(TickRate)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ticker.C:
+				boardState := b.Print()
+				conn.WriteMessage(websocket.TextMessage, []byte(boardState))
+			}
+		}
+	}()
 
 	for {
 		_, msg, err := conn.ReadMessage()
@@ -229,7 +244,7 @@ func (b *Board) Run(w http.ResponseWriter, r *http.Request) {
 		default:
 			continue
 		}
-
 		fmt.Println("received:", client.Keypress)
+
 	}
 }

@@ -7,6 +7,13 @@ import (
 	"github.com/electr1fy0/socky/board"
 )
 
+// TODO:
+// 1. Write board back to the clients
+// 2. Leaderboard
+// 3. Broadcast fn
+// 4. Graceful connection closure and snake removal upn connection(!!!)
+//
+
 func main() {
 	b := &board.Board{}
 	b.Init(40, 60)
@@ -17,12 +24,10 @@ func main() {
 		defer tick.Stop()
 		defer foodTick.Stop()
 
-		for {
+		for { // reminder: modernize this after understanding range in channel
 			select {
 			case <-tick.C:
 				b.Update()
-				board.Clear()
-				b.Print()
 			}
 		}
 	}()
