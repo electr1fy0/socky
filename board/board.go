@@ -38,6 +38,7 @@ type Snake struct {
 	Size      int
 	Direction Direction
 	Score     int
+	haslost   bool
 }
 
 func (s *Snake) Init() {
@@ -131,7 +132,6 @@ func (b *Board) Update() {
 			s.Score++
 			b.Grid[s.Head.X][s.Head.Y] = '.'
 			s.Body = append([]Point{s.Tail}, s.Body...)
-			// REMINDER: add tail logic
 			go b.GenerateFood()
 		}
 	}
@@ -180,10 +180,7 @@ type Client struct {
 	Snake    Snake
 }
 
-var (
-	clients   = make(map[*Client]bool)
-	clientsMu sync.Mutex
-)
+var clientsMu sync.Mutex
 
 func (b *Board) Run(w http.ResponseWriter, r *http.Request) {
 	conn, err := upgrader.Upgrade(w, r, nil)
@@ -195,6 +192,7 @@ func (b *Board) Run(w http.ResponseWriter, r *http.Request) {
 	client := &Client{
 		Conn: conn, ID: r.RemoteAddr,
 	}
+	// TODO: implement connection closure upon losing
 	client.Snake.Init()
 
 	clientsMu.Lock()
@@ -212,19 +210,19 @@ func (b *Board) Run(w http.ResponseWriter, r *http.Request) {
 		client.Keypress = string(msg)
 
 		switch client.Keypress {
-		case "k":
+		case "k", "w":
 			if client.Snake.Direction != Down {
 				client.Snake.Direction = Up
 			}
-		case "j":
+		case "j", "s":
 			if client.Snake.Direction != Up {
 				client.Snake.Direction = Down
 			}
-		case "l":
+		case "l", "a":
 			if client.Snake.Direction != Left {
 				client.Snake.Direction = Right
 			}
-		case "h":
+		case "h", "d":
 			if client.Snake.Direction != Right {
 				client.Snake.Direction = Left
 			}
