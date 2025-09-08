@@ -12,6 +12,8 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+// TODO: make members that shouldn't be exported lower case again
+
 const (
 	Min        = 5
 	TickRate   = 300 * time.Millisecond
@@ -46,12 +48,14 @@ func (s *Snake) Init() {
 
 func (s *Snake) shift(newHead Point) {
 	n := len(s.Body)
+	s.Tail = Point{s.Body[0].X, s.Body[0].Y}
 	for i := 0; i < n-1; i++ {
 		s.Body[i].X = s.Body[i+1].X
 		s.Body[i].Y = s.Body[i+1].Y
 	}
 	s.Body[n-1] = newHead
 	s.Head = newHead
+
 }
 
 func (s *Snake) Move() {
@@ -107,9 +111,12 @@ func (b *Board) InitSnake(s *Snake) {
 	i := b.Rows / 2
 	for j := 2; j < b.Cols; j++ {
 		s.Body[snakelength] = Point{X: i + b.SnakeCount, Y: j}
+		if snakelength == 0 {
+			s.Tail = Point{i + b.SnakeCount, j}
+		}
 		snakelength++
 		if snakelength == Min {
-			s.Head = Point{X: i + b.SnakeCount, Y: j}
+			s.Head = Point{i + b.SnakeCount, j}
 			b.SnakeCount++
 			return
 		}
@@ -122,8 +129,10 @@ func (b *Board) Update() {
 
 		if s.Head == b.Food {
 			s.Score++
-			// reminder: add tail logic
-			b.GenerateFood()
+			b.Grid[s.Head.X][s.Head.Y] = '.'
+			s.Body = append([]Point{s.Tail}, s.Body...)
+			// REMINDER: add tail logic
+			go b.GenerateFood()
 		}
 	}
 }
