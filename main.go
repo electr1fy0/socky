@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/electr1fy0/socky/board"
@@ -34,8 +35,15 @@ func main() {
 		}
 	}()
 
-	http.HandleFunc("/", b.Run)
-	fmt.Println("Server is up at port 8081")
+	port := "8080"
+	if p := os.Getenv("PORT"); p != "" {
+		port = p
+	}
 
-	http.ListenAndServe(":8081", nil)
+	http.HandleFunc("/", b.Run)
+	fmt.Println("Server is up at port", port)
+
+	if err := http.ListenAndServe(":"+port, nil); err != nil {
+		fmt.Println("Error listening: ", err)
+	}
 }

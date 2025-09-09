@@ -212,7 +212,10 @@ func (b *Board) BroadCast() {
 			}
 		}
 
-		client.Conn.WriteMessage(websocket.TextMessage, []byte(boardState+scoreText+"\n\n"))
+		if err := client.Conn.WriteMessage(websocket.TextMessage, []byte(boardState+scoreText+"\n\n")); err != nil {
+			b.removeClient(client)
+			client.Conn.Close()
+		}
 
 	}
 }
@@ -245,8 +248,11 @@ func (b *Board) Run(w http.ResponseWriter, r *http.Request) {
 	b.InitSnake(&client.Snake)
 
 	defer func() {
+		if err := conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, "see ya, mate")); err != nil {
+			fmt.Println("Error writing close message: (can ignore for now)", err)
+		}
 		b.removeClient(client)
-		conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, "see ya, mate"))
+
 		fmt.Println("client left")
 		conn.Close()
 	}()
