@@ -63,6 +63,7 @@ func main() {
 		}
 		clear()
 		fmt.Print(string(msg))
+		fmt.Print("<hjkl> or <wasd> to move. <q> to quit.")
 	}
 
 }

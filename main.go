@@ -13,10 +13,14 @@ import (
 // 2. Leaderboard
 // 3. Broadcast fn
 // 4. Graceful connection closure and snake removal upn connection(!!!)
+// 5. Name the players
+
+const boardHeight = 40
+const boardWidth = 50
 
 func main() {
 	b := &board.Board{}
-	b.Init(40, 60)
+	b.Init(boardHeight, boardWidth)
 	b.Print()
 	go func() {
 		tick := time.NewTicker(board.TickRate)
@@ -26,6 +30,7 @@ func main() {
 
 		for range tick.C {
 			b.Update()
+			b.BroadCast()
 		}
 	}()
 

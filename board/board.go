@@ -5,6 +5,7 @@ import (
 	"log"
 	"math/rand/v2"
 	"net/http"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -14,7 +15,7 @@ import (
 
 const (
 	Min        = 5
-	TickRate   = 150 * time.Millisecond
+	TickRate   = 600 * time.Millisecond
 	FoodPeriod = 4 * time.Second
 )
 
@@ -36,6 +37,7 @@ type Snake struct {
 	Size      int
 	Direction Direction
 	Score     int
+	ID        string
 	haslost   bool
 }
 
@@ -81,6 +83,7 @@ type Board struct {
 	Grid       [][]rune
 	SnakeCount int
 	Clients    []*Client
+	mu         sync.RWMutex
 }
 
 func (b *Board) GenerateFood() {
@@ -144,8 +147,15 @@ func (b *Board) Print() string {
 			printed := false
 			if b.SnakeCount != 0 {
 				for _, snake := range b.Snakes {
+					if i == snake.Head.X && j == snake.Head.Y {
+						output.WriteString("◕ ")
+						printed = true
+						continue
+					}
 					for _, point := range snake.Body {
+
 						if point.X == i && point.Y == j {
+
 							output.WriteString("◉ ")
 							printed = true
 						}
@@ -160,10 +170,6 @@ func (b *Board) Print() string {
 	}
 
 	return output.String()
-}
-
-func (b *Board) BroadCast() {
-
 }
 
 func Clear() {
@@ -183,7 +189,55 @@ type Client struct {
 	Snake    Snake
 }
 
-var clientsMu sync.Mutex
+func (b *Board) addClient(client *Client) {
+	b.mu.Lock()
+	b.Clients = append(b.Clients, client)
+	b.Snakes = append(b.Snakes, &client.Snake)
+	b.mu.Unlock()
+}
+
+func (b *Board) BroadCast() {
+	b.mu.RLock()
+	boardState := b.Print()
+	snakes := make([]*Snake, len(b.Snakes))
+	copy(snakes, b.Snakes)
+	clients := make([]*Client, len(b.Clients))
+
+	copy(clients, b.Clients)
+
+	b.mu.RUnlock()
+
+	for _, client := range clients {
+		scoreText := "Scores:\r"
+		otherCnt := 0
+		for _, snake := range snakes {
+			if snake.ID == client.Snake.ID {
+				scoreText += "\n\rYou: " + strconv.Itoa(snake.Score) + "\r"
+			} else {
+				otherCnt++
+				scoreText += "\n\rPlayer " + strconv.Itoa(otherCnt) + ": " + strconv.Itoa(snake.Score) + "\r"
+			}
+		}
+		client.Conn.WriteMessage(websocket.TextMessage, []byte(boardState+scoreText))
+	}
+}
+
+func (b *Board) removeClient(client *Client) {
+	b.mu.Lock()
+	for i, s := range b.Snakes {
+		if s.ID == client.Snake.ID {
+			b.Snakes = append(b.Snakes[:i], b.Snakes[i+1:]...)
+			break
+		}
+	}
+	for i, c := range b.Clients {
+		if c.Snake.ID == client.Snake.ID {
+			b.Clients = append(b.Clients[:i], b.Clients[i+1:]...)
+			break
+		}
+	}
+	b.mu.Unlock()
+}
 
 func (b *Board) Run(w http.ResponseWriter, r *http.Request) {
 	conn, err := upgrader.Upgrade(w, r, nil)
@@ -191,44 +245,28 @@ func (b *Board) Run(w http.ResponseWriter, r *http.Request) {
 		log.Println("Error: ", err)
 		return
 	}
-	defer func() {
-		conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, "see ya, mate"))
-		fmt.Println("Client left")
-		conn.Close()
-	}()
 
 	client := &Client{
 		Conn: conn, ID: r.RemoteAddr,
 	}
+
 	client.Snake.Init()
-
-	clientsMu.Lock()
-	b.Snakes = append(b.Snakes, &client.Snake)
+	client.Snake.ID = r.RemoteAddr
+	b.addClient(client)
 	b.InitSnake(&client.Snake)
-	clientsMu.Unlock()
 
-	// TODO: make a central broadcasting fn later that's synchronous with the update Ticker
-	go func() {
-		ticker := time.NewTicker(TickRate)
-		defer ticker.Stop()
-		for range ticker.C {
-			boardState := b.Print()
-			conn.WriteMessage(websocket.TextMessage, []byte(boardState))
-		}
+	defer func() {
+		b.removeClient(client)
+		conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, "see ya, mate"))
+		fmt.Println("client left")
+		conn.Close()
 	}()
 
 	for {
 		_, msg, err := conn.ReadMessage()
 		if err != nil {
-			log.Println("Msg reading err:", err)
-			// reminder: i should check what kind of error it is
-			fmt.Println("Killing the fucking snake...")
-			for i, snake := range b.Snakes {
-				if snake == &client.Snake {
-					b.Snakes = append(b.Snakes[:i], b.Snakes[i+1:]...)
-					return
-				}
-			}
+			fmt.Println("Err reading:", err)
+			break
 		}
 
 		client.Keypress = string(msg)
@@ -242,11 +280,11 @@ func (b *Board) Run(w http.ResponseWriter, r *http.Request) {
 			if client.Snake.Direction != Up {
 				client.Snake.Direction = Down
 			}
-		case "l", "a":
+		case "l", "d":
 			if client.Snake.Direction != Left {
 				client.Snake.Direction = Right
 			}
-		case "h", "d":
+		case "h", "a":
 			if client.Snake.Direction != Right {
 				client.Snake.Direction = Left
 			}
