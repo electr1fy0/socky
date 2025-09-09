@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 	"time"
 
@@ -12,7 +13,6 @@ import (
 // 2. Leaderboard
 // 3. Broadcast fn
 // 4. Graceful connection closure and snake removal upn connection(!!!)
-//
 
 func main() {
 	b := &board.Board{}
@@ -24,14 +24,13 @@ func main() {
 		defer tick.Stop()
 		defer foodTick.Stop()
 
-		for { // reminder: modernize this after understanding range in channel
-			select {
-			case <-tick.C:
-				b.Update()
-			}
+		for range tick.C {
+			b.Update()
 		}
 	}()
 
 	http.HandleFunc("/", b.Run)
-	http.ListenAndServe(":8080", nil)
+	fmt.Println("Server is up at port 8081")
+
+	http.ListenAndServe(":8081", nil)
 }

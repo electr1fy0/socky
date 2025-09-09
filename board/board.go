@@ -191,6 +191,11 @@ func (b *Board) Run(w http.ResponseWriter, r *http.Request) {
 		log.Println("Error: ", err)
 		return
 	}
+	defer func() {
+		conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, "see ya, mate"))
+		fmt.Println("Client left")
+		conn.Close()
+	}()
 
 	client := &Client{
 		Conn: conn, ID: r.RemoteAddr,
@@ -202,16 +207,13 @@ func (b *Board) Run(w http.ResponseWriter, r *http.Request) {
 	b.InitSnake(&client.Snake)
 	clientsMu.Unlock()
 
-	// TODO: make a central broadcasting fn later that's synchronous with the update ticker
+	// TODO: make a central broadcasting fn later that's synchronous with the update Ticker
 	go func() {
 		ticker := time.NewTicker(TickRate)
 		defer ticker.Stop()
-		for {
-			select {
-			case <-ticker.C:
-				boardState := b.Print()
-				conn.WriteMessage(websocket.TextMessage, []byte(boardState))
-			}
+		for range ticker.C {
+			boardState := b.Print()
+			conn.WriteMessage(websocket.TextMessage, []byte(boardState))
 		}
 	}()
 
@@ -219,7 +221,14 @@ func (b *Board) Run(w http.ResponseWriter, r *http.Request) {
 		_, msg, err := conn.ReadMessage()
 		if err != nil {
 			log.Println("Msg reading err:", err)
-			break
+			// reminder: i should check what kind of error it is
+			fmt.Println("Killing the fucking snake...")
+			for i, snake := range b.Snakes {
+				if snake == &client.Snake {
+					b.Snakes = append(b.Snakes[:i], b.Snakes[i+1:]...)
+					return
+				}
+			}
 		}
 
 		client.Keypress = string(msg)
@@ -244,7 +253,7 @@ func (b *Board) Run(w http.ResponseWriter, r *http.Request) {
 		default:
 			continue
 		}
-		fmt.Println("received:", client.Keypress)
+		fmt.Print("received:", client.Keypress, "\r")
 
 	}
 }
