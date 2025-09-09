@@ -14,9 +14,9 @@ import (
 )
 
 const (
-	Min        = 5
-	TickRate   = 600 * time.Millisecond
-	FoodPeriod = 4 * time.Second
+	MinSnakeLength = 5
+	TickRate       = 600 * time.Millisecond
+	FoodPeriod     = 4 * time.Second
 )
 
 type Direction int
@@ -34,15 +34,12 @@ type Snake struct {
 	Body      []Point
 	Head      Point
 	Tail      Point
-	Size      int
 	Direction Direction
 	Score     int
-	ID        string
-	haslost   bool
 }
 
 func (s *Snake) Init() {
-	s.Body = make([]Point, Min+1)
+	s.Body = make([]Point, MinSnakeLength)
 	s.Direction = Right
 	s.Score = 0
 }
@@ -79,7 +76,6 @@ func (s *Snake) Move() {
 type Board struct {
 	Rows, Cols int
 	Food       Point
-	Snakes     []*Snake
 	Grid       [][]rune
 	SnakeCount int
 	Clients    []*Client
@@ -87,7 +83,7 @@ type Board struct {
 }
 
 func (b *Board) GenerateFood() {
-	time.Sleep(4 * time.Second)
+	time.Sleep(FoodPeriod)
 	x := rand.IntN(b.Rows)
 	y := rand.IntN(b.Cols)
 
@@ -97,7 +93,7 @@ func (b *Board) GenerateFood() {
 
 func (b *Board) Init(rows, cols int) {
 	b.Rows, b.Cols = rows, cols
-	b.Snakes = []*Snake{}
+	b.Clients = []*Client{}
 	b.Grid = make([][]rune, rows)
 	for i := range b.Grid {
 		b.Grid[i] = make([]rune, cols)
@@ -118,7 +114,7 @@ func (b *Board) InitSnake(s *Snake) {
 			s.Tail = Point{i + b.SnakeCount, j}
 		}
 		snakelength++
-		if snakelength == Min {
+		if snakelength == MinSnakeLength {
 			s.Head = Point{i + b.SnakeCount, j}
 			b.SnakeCount++
 			return
@@ -127,13 +123,13 @@ func (b *Board) InitSnake(s *Snake) {
 }
 
 func (b *Board) Update() {
-	for _, s := range b.Snakes {
-		s.Move()
+	for _, c := range b.Clients {
+		c.Snake.Move()
 
-		if s.Head == b.Food {
-			s.Score++
-			b.Grid[s.Head.X][s.Head.Y] = '.'
-			s.Body = append([]Point{s.Tail}, s.Body...)
+		if c.Snake.Head == b.Food {
+			c.Snake.Score++
+			b.Grid[c.Snake.Head.X][c.Snake.Head.Y] = '.'
+			c.Snake.Body = append([]Point{c.Snake.Tail}, c.Snake.Body...)
 			go b.GenerateFood()
 		}
 	}
@@ -146,13 +142,13 @@ func (b *Board) Print() string {
 		for j := 0; j < b.Cols; j++ {
 			printed := false
 			if b.SnakeCount != 0 {
-				for _, snake := range b.Snakes {
-					if i == snake.Head.X && j == snake.Head.Y {
+				for _, client := range b.Clients {
+					if i == client.Snake.Head.X && j == client.Snake.Head.Y {
 						output.WriteString("◕ ")
 						printed = true
 						continue
 					}
-					for _, point := range snake.Body {
+					for _, point := range client.Snake.Body {
 
 						if point.X == i && point.Y == j {
 
@@ -192,15 +188,12 @@ type Client struct {
 func (b *Board) addClient(client *Client) {
 	b.mu.Lock()
 	b.Clients = append(b.Clients, client)
-	b.Snakes = append(b.Snakes, &client.Snake)
 	b.mu.Unlock()
 }
 
 func (b *Board) BroadCast() {
 	b.mu.RLock()
 	boardState := b.Print()
-	snakes := make([]*Snake, len(b.Snakes))
-	copy(snakes, b.Snakes)
 	clients := make([]*Client, len(b.Clients))
 
 	copy(clients, b.Clients)
@@ -208,30 +201,27 @@ func (b *Board) BroadCast() {
 	b.mu.RUnlock()
 
 	for _, client := range clients {
-		scoreText := "Scores:\r"
 		otherCnt := 0
-		for _, snake := range snakes {
-			if snake.ID == client.Snake.ID {
-				scoreText += "\n\rYou: " + strconv.Itoa(snake.Score) + "\r"
+		scoreText := "Scores:\r"
+		for _, currentClient := range clients {
+			if client.ID == currentClient.ID {
+				scoreText += "\n\rYou: " + strconv.Itoa(currentClient.Snake.Score) + "\r\n"
 			} else {
 				otherCnt++
-				scoreText += "\n\rPlayer " + strconv.Itoa(otherCnt) + ": " + strconv.Itoa(snake.Score) + "\r"
+				scoreText += "\n\rPlayer " + strconv.Itoa(otherCnt) + ": " + strconv.Itoa(currentClient.Snake.Score) + "\r\n"
 			}
 		}
-		client.Conn.WriteMessage(websocket.TextMessage, []byte(boardState+scoreText))
+
+		client.Conn.WriteMessage(websocket.TextMessage, []byte(boardState+scoreText+"\n\n"))
+
 	}
 }
 
 func (b *Board) removeClient(client *Client) {
 	b.mu.Lock()
-	for i, s := range b.Snakes {
-		if s.ID == client.Snake.ID {
-			b.Snakes = append(b.Snakes[:i], b.Snakes[i+1:]...)
-			break
-		}
-	}
+
 	for i, c := range b.Clients {
-		if c.Snake.ID == client.Snake.ID {
+		if c.ID == client.ID {
 			b.Clients = append(b.Clients[:i], b.Clients[i+1:]...)
 			break
 		}
@@ -251,7 +241,6 @@ func (b *Board) Run(w http.ResponseWriter, r *http.Request) {
 	}
 
 	client.Snake.Init()
-	client.Snake.ID = r.RemoteAddr
 	b.addClient(client)
 	b.InitSnake(&client.Snake)
 
