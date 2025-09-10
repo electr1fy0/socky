@@ -15,6 +15,7 @@ import (
 // 3. Broadcast fn
 // 4. Graceful connection closure and snake removal upn connection(!!!)
 // 5. Name the players
+// 6. Fix double close on clash with wall, unify closing logic
 
 const boardHeight = 40
 const boardWidth = 50

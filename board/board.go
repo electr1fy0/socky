@@ -15,7 +15,7 @@ import (
 
 const (
 	MinSnakeLength = 5
-	TickRate       = 600 * time.Millisecond
+	TickRate       = 200 * time.Millisecond
 	FoodPeriod     = 4 * time.Second
 )
 
@@ -53,7 +53,6 @@ func (s *Snake) shift(newHead Point) {
 	}
 	s.Body[n-1] = newHead
 	s.Head = newHead
-
 }
 
 func (s *Snake) Move() {
@@ -87,8 +86,10 @@ func (b *Board) GenerateFood() {
 	x := rand.IntN(b.Rows)
 	y := rand.IntN(b.Cols)
 
+	b.mu.Lock()
 	b.Food = Point{X: x, Y: y}
 	b.Grid[x][y] = '⊗'
+	b.mu.Unlock()
 }
 
 func (b *Board) Init(rows, cols int) {
@@ -102,6 +103,7 @@ func (b *Board) Init(rows, cols int) {
 		}
 	}
 	b.SnakeCount = 0
+
 	go b.GenerateFood()
 }
 
@@ -123,15 +125,33 @@ func (b *Board) InitSnake(s *Snake) {
 }
 
 func (b *Board) Update() {
+
+	var toRemove []*Client
+
 	for _, c := range b.Clients {
 		c.Snake.Move()
 
+		if c.Snake.Head.X < 0 || c.Snake.Head.X >= b.Rows || c.Snake.Head.Y < 0 || c.Snake.Head.Y >= b.Cols {
+			toRemove = append(toRemove, c)
+			continue
+		}
+
+		b.Grid[c.Snake.Head.X][c.Snake.Head.Y] = '◕'
+
+		prevHead := c.Snake.Body[len(c.Snake.Body)-2]
+		b.Grid[prevHead.X][prevHead.Y] = '◉'
+		b.Grid[c.Snake.Tail.X][c.Snake.Tail.Y] = '.'
+
 		if c.Snake.Head == b.Food {
 			c.Snake.Score++
-			b.Grid[c.Snake.Head.X][c.Snake.Head.Y] = '.'
+			b.Grid[c.Snake.Head.X][c.Snake.Head.Y] = '◕'
 			c.Snake.Body = append([]Point{c.Snake.Tail}, c.Snake.Body...)
 			go b.GenerateFood()
 		}
+	}
+	for _, c := range toRemove {
+		b.removeClient(c)
+		c.Conn.Close()
 	}
 }
 
@@ -140,27 +160,7 @@ func (b *Board) Print() string {
 
 	for i := 0; i < b.Rows; i++ {
 		for j := 0; j < b.Cols; j++ {
-			printed := false
-			if b.SnakeCount != 0 {
-				for _, client := range b.Clients {
-					if i == client.Snake.Head.X && j == client.Snake.Head.Y {
-						output.WriteString("◕ ")
-						printed = true
-						continue
-					}
-					for _, point := range client.Snake.Body {
-
-						if point.X == i && point.Y == j {
-
-							output.WriteString("◉ ")
-							printed = true
-						}
-					}
-				}
-			}
-			if !printed {
-				output.WriteString(string(b.Grid[i][j]) + " ")
-			}
+			output.WriteString(string(b.Grid[i][j]) + " ")
 		}
 		output.WriteString("\n\r")
 	}
@@ -216,7 +216,6 @@ func (b *Board) BroadCast() {
 			b.removeClient(client)
 			client.Conn.Close()
 		}
-
 	}
 }
 
@@ -225,6 +224,13 @@ func (b *Board) removeClient(client *Client) {
 
 	for i, c := range b.Clients {
 		if c.ID == client.ID {
+			for _, point := range c.Snake.Body {
+				if point.X >= 0 && point.X < b.Rows && point.Y >= 0 && point.Y < b.Cols {
+					b.Grid[point.X][point.Y] = '.'
+				}
+
+			}
+			b.Grid[c.Snake.Tail.X][c.Snake.Tail.Y] = '.'
 			b.Clients = append(b.Clients[:i], b.Clients[i+1:]...)
 			break
 		}
