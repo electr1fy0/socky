@@ -5,7 +5,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"os"
 
 	"github.com/gorilla/websocket"
@@ -29,7 +28,8 @@ func main() {
 	// }
 	conn, _, err := websocket.DefaultDialer.Dial(url, nil)
 	if err != nil {
-		log.Fatalln("Error dialing up:", err)
+		fmt.Println("Error dialing up:", err)
+		os.Exit(1)
 	}
 
 	var name string
@@ -40,7 +40,11 @@ func main() {
 		conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, "closing from client"))
 		conn.Close()
 	}()
-	conn.WriteMessage(websocket.TextMessage, []byte("client has connected"))
+	err = conn.WriteMessage(websocket.TextMessage, []byte("client has connected"))
+	if err != nil {
+		fmt.Println("Error writing message:", err)
+		os.Exit(1)
+	}
 
 	oldState, err = term.MakeRaw(int(os.Stdin.Fd()))
 	defer term.Restore(int(os.Stdin.Fd()), oldState)
