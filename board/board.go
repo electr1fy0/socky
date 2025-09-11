@@ -134,6 +134,16 @@ func (b *Board) InitSnake(s *Snake) {
 	}
 }
 
+func (b *Board) ClearBoard() {
+	if len(b.Clients) == 0 {
+		for i := 0; i < b.Rows; i++ {
+			for j := 0; j < b.Cols; j++ {
+				b.Grid[i][j] = '·'
+			}
+		}
+	}
+}
+
 func (b *Board) Update() {
 
 	var toRemove []*Client
@@ -169,8 +179,9 @@ func (b *Board) Update() {
 
 		if c.Snake.Head == b.Food {
 			c.Snake.Score++
+			b.Grid[c.Snake.Head.X][c.Snake.Head.Y] = '◕'
 			c.Snake.Body = append([]Point{c.Snake.Tail}, c.Snake.Body...)
-			go b.GenerateFood()
+			// b.GenerateFood()
 		}
 	}
 	for _, c := range toRemove {
@@ -185,7 +196,7 @@ func (b *Board) Print() string {
 	for i := 0; i <= b.Cols*2; i++ {
 		output.WriteString("─")
 	}
-	output.WriteString("┐\r\n")
+	output.WriteString("┐\t\r\n")
 
 	for i := 0; i < b.Rows; i++ {
 		output.WriteString("\t│ ")
@@ -208,14 +219,14 @@ func (b *Board) Print() string {
 			}
 			output.WriteString(colored + " ")
 		}
-		output.WriteString("│\r\n")
+		output.WriteString("│\t\r\n")
 	}
 	output.WriteString("\t")
 	output.WriteString("└")
 	for i := 0; i <= b.Cols*2; i++ {
 		output.WriteString("─")
 	}
-	output.WriteString("┘\r\n")
+	output.WriteString("┘\t\r\n")
 
 	return output.String()
 }
@@ -255,13 +266,14 @@ func (b *Board) BroadCast() {
 
 	b.mu.RUnlock()
 
+	scoreText := "\tScores:\r"
 	for _, client := range clients {
-		scoreText := "\tScores:\r"
-		for _, currentClient := range clients {
-			name := client.Name
-			scoreText += "\n\r\t" + name + ": " + strconv.Itoa(currentClient.Snake.Score) + "\r\n"
-		}
+		name := client.Name
+		scoreText += "\n\r\t" + name + ": " + strconv.Itoa(client.Snake.Score)
+	}
 
+	scoreText += "\n\r"
+	for _, client := range clients {
 		if err := client.Conn.WriteMessage(websocket.TextMessage, []byte(boardState+scoreText+"\n\n")); err != nil {
 			b.removeClient(client)
 			client.Conn.Close()

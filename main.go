@@ -18,7 +18,7 @@ import (
 // 6. Fix double close on clash with wall, unify closing logic
 
 const boardHeight = 30
-const boardWidth = 40
+const boardWidth = 35
 
 func main() {
 	b := &board.Board{}
@@ -33,6 +33,7 @@ func main() {
 			select {
 			case <-tick.C:
 				b.Update()
+				b.ClearBoard()
 				b.BroadCast()
 			case <-foodTick.C:
 				b.GenerateFood()

@@ -74,7 +74,7 @@ func main() {
 		_, msg, err := conn.ReadMessage()
 		if err != nil {
 			// reminder: come on, mate. you're better than this (i'm ashamed)
-			fmt.Println("\n\rYou lost")
+			fmt.Println("\n\r\tYOU LOST!")
 			break
 		}
 		clear()
