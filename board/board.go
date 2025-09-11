@@ -15,8 +15,8 @@ import (
 
 const (
 	MinSnakeLength = 5
+	FoodPeriod     = 6 * time.Second
 	TickRate       = 200 * time.Millisecond
-	FoodPeriod     = 4 * time.Second
 )
 
 type Direction int
@@ -82,12 +82,12 @@ type Board struct {
 }
 
 func (b *Board) GenerateFood() {
-	time.Sleep(FoodPeriod)
 	x := rand.IntN(b.Rows)
 	y := rand.IntN(b.Cols)
 
 	b.mu.Lock()
 	b.Food = Point{X: x, Y: y}
+	// TickRate -= 100 * time.Millisecond
 	b.Grid[x][y] = '⊗'
 	b.mu.Unlock()
 }
@@ -103,8 +103,6 @@ func (b *Board) Init(rows, cols int) {
 		}
 	}
 	b.SnakeCount = 0
-
-	go b.GenerateFood()
 }
 
 func (b *Board) InitSnake(s *Snake) {
@@ -172,13 +170,27 @@ func (b *Board) Update() {
 
 func (b *Board) Print() string {
 	var output strings.Builder
+	output.WriteString("\t")
+	output.WriteString("┌")
+	for i := 0; i < b.Cols; i++ {
+		output.WriteString("──")
+	}
+	output.WriteString("┐\r\n")
 
 	for i := 0; i < b.Rows; i++ {
+		output.WriteString("\t")
+		output.WriteString("│")
 		for j := 0; j < b.Cols; j++ {
 			output.WriteString(string(b.Grid[i][j]) + " ")
 		}
-		output.WriteString("\n\r")
+		output.WriteString("│\r\n")
 	}
+	output.WriteString("\t")
+	output.WriteString("└")
+	for i := 0; i < b.Cols; i++ {
+		output.WriteString("──")
+	}
+	output.WriteString("┘\r\n")
 
 	return output.String()
 }
@@ -198,6 +210,7 @@ type Client struct {
 	ID       string
 	Keypress string
 	Snake    Snake
+	Name     string
 }
 
 func (b *Board) addClient(client *Client) {
@@ -216,15 +229,10 @@ func (b *Board) BroadCast() {
 	b.mu.RUnlock()
 
 	for _, client := range clients {
-		otherCnt := 0
-		scoreText := "Scores:\r"
+		scoreText := "\tScores:\r"
 		for _, currentClient := range clients {
-			if client.ID == currentClient.ID {
-				scoreText += "\n\rYou: " + strconv.Itoa(currentClient.Snake.Score) + "\r\n"
-			} else {
-				otherCnt++
-				scoreText += "\n\rPlayer " + strconv.Itoa(otherCnt) + ": " + strconv.Itoa(currentClient.Snake.Score) + "\r\n"
-			}
+			name := client.Name
+			scoreText += "\n\r\t" + name + ": " + strconv.Itoa(currentClient.Snake.Score) + "\r\n"
 		}
 
 		if err := client.Conn.WriteMessage(websocket.TextMessage, []byte(boardState+scoreText+"\n\n")); err != nil {
@@ -291,9 +299,15 @@ func (b *Board) Run(w http.ResponseWriter, r *http.Request) {
 
 	for {
 		_, msg, err := conn.ReadMessage()
+
 		if err != nil {
 			fmt.Println("Err reading:", err)
 			break
+		}
+		msgString := string(msg)
+		if name, ok := strings.CutPrefix(msgString, "NAME:"); ok {
+			client.Name = name
+			continue
 		}
 
 		client.Keypress = string(msg)

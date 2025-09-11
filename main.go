@@ -17,8 +17,8 @@ import (
 // 5. Name the players
 // 6. Fix double close on clash with wall, unify closing logic
 
-const boardHeight = 40
-const boardWidth = 50
+const boardHeight = 30
+const boardWidth = 40
 
 func main() {
 	b := &board.Board{}
@@ -29,10 +29,14 @@ func main() {
 		foodTick := time.NewTicker(board.FoodPeriod)
 		defer tick.Stop()
 		defer foodTick.Stop()
-
-		for range tick.C {
-			b.Update()
-			b.BroadCast()
+		for {
+			select {
+			case <-tick.C:
+				b.Update()
+				b.BroadCast()
+			case <-foodTick.C:
+				b.GenerateFood()
+			}
 		}
 	}()
 

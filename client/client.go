@@ -24,7 +24,6 @@ func clear() {
 }
 
 func main() {
-
 	// if u := os.Getenv("SOCKY_SERVER_URL"); u != "" {
 	// 	url = u
 	// }
@@ -32,6 +31,11 @@ func main() {
 	if err != nil {
 		log.Fatalln("Error dialing up:", err)
 	}
+
+	var name string
+	fmt.Print("Enter your name:")
+	fmt.Scanln(&name)
+
 	defer func() {
 		conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, "closing from client"))
 		conn.Close()
@@ -44,6 +48,7 @@ func main() {
 		panic(err)
 	}
 
+	err = conn.WriteMessage(websocket.TextMessage, []byte("NAME:"+name))
 	buf := make([]byte, 1)
 	over := false
 
@@ -70,7 +75,7 @@ func main() {
 		}
 		clear()
 		fmt.Print(string(msg))
-		fmt.Print("<hjkl> or <wasd> to move. <q> to quit.")
+		fmt.Print("\t<hjkl> or <wasd> to move. <q> to quit.")
 	}
 
 }
