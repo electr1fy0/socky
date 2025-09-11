@@ -15,7 +15,7 @@ import (
 var oldState *term.State
 
 var err error
-var url = "ws://localhost:8080"
+var url = "ws://localhost:8080/"
 
 var conn *websocket.Conn
 

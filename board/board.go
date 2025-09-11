@@ -130,7 +130,22 @@ func (b *Board) Update() {
 
 	for _, c := range b.Clients {
 		c.Snake.Move()
-
+		added := false
+		for _, other := range b.Clients {
+			if other == c {
+				continue
+			}
+			for _, otherBody := range other.Snake.Body {
+				if c.Snake.Head == otherBody {
+					toRemove = append(toRemove, c)
+					added = true
+					break
+				}
+			}
+		}
+		if added {
+			continue
+		}
 		if c.Snake.Head.X < 0 || c.Snake.Head.X >= b.Rows || c.Snake.Head.Y < 0 || c.Snake.Head.Y >= b.Cols {
 			toRemove = append(toRemove, c)
 			continue
@@ -226,16 +241,27 @@ func (b *Board) removeClient(client *Client) {
 		if c.ID == client.ID {
 			for _, point := range c.Snake.Body {
 				if point.X >= 0 && point.X < b.Rows && point.Y >= 0 && point.Y < b.Cols {
-					b.Grid[point.X][point.Y] = '.'
+					b.Grid[point.X][point.Y] = '○'
 				}
-
 			}
-			b.Grid[c.Snake.Tail.X][c.Snake.Tail.Y] = '.'
+			b.Grid[c.Snake.Tail.X][c.Snake.Tail.Y] = '○'
 			b.Clients = append(b.Clients[:i], b.Clients[i+1:]...)
 			break
 		}
 	}
 	b.mu.Unlock()
+	go func() {
+		time.Sleep(1 * time.Second)
+		b.mu.Lock()
+		for i := range b.Grid {
+			for j := range b.Grid[i] {
+				if b.Grid[i][j] == '○' {
+					b.Grid[i][j] = '.'
+				}
+			}
+		}
+		b.mu.Unlock()
+	}()
 }
 
 func (b *Board) Run(w http.ResponseWriter, r *http.Request) {
