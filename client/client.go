@@ -33,7 +33,7 @@ func main() {
 	}
 
 	var name string
-	fmt.Print("Enter your name:")
+	fmt.Print("Enter your name: ")
 	fmt.Scanln(&name)
 
 	defer func() {
@@ -75,7 +75,7 @@ func main() {
 		}
 		clear()
 		fmt.Print(string(msg))
-		fmt.Print("\t<hjkl> or <wasd> to move. <q> to quit.")
+		fmt.Print("\t<hjkl> or <wasd> to move. <q> to quit.\n\r")
 	}
 
 }

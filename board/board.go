@@ -15,7 +15,7 @@ import (
 
 const (
 	MinSnakeLength = 5
-	FoodPeriod     = 6 * time.Second
+	FoodPeriod     = 8 * time.Second
 	TickRate       = 200 * time.Millisecond
 )
 
@@ -27,6 +27,19 @@ const (
 	Left
 	Right
 )
+
+var snakeColors = []string{
+	"\033[31m", // Red
+	"\033[33m", // Yellow
+	"\033[32m", // Green
+	"\033[34m", // Blue
+	"\033[35m", // Magenta
+	"\033[36m", // Cyan
+	"\033[37m", // White
+}
+
+var foodColor = "\033[38;5;208m" // Bright orange
+const resetColor = "\033[0m"
 
 type Point struct{ X, Y int }
 
@@ -87,8 +100,7 @@ func (b *Board) GenerateFood() {
 
 	b.mu.Lock()
 	b.Food = Point{X: x, Y: y}
-	// TickRate -= 100 * time.Millisecond
-	b.Grid[x][y] = '⊗'
+	b.Grid[x][y] = '◆'
 	b.mu.Unlock()
 }
 
@@ -99,7 +111,7 @@ func (b *Board) Init(rows, cols int) {
 	for i := range b.Grid {
 		b.Grid[i] = make([]rune, cols)
 		for j := range b.Grid[i] {
-			b.Grid[i][j] = '.'
+			b.Grid[i][j] = '·'
 		}
 	}
 	b.SnakeCount = 0
@@ -153,11 +165,10 @@ func (b *Board) Update() {
 
 		prevHead := c.Snake.Body[len(c.Snake.Body)-2]
 		b.Grid[prevHead.X][prevHead.Y] = '◉'
-		b.Grid[c.Snake.Tail.X][c.Snake.Tail.Y] = '.'
+		b.Grid[c.Snake.Tail.X][c.Snake.Tail.Y] = '·'
 
 		if c.Snake.Head == b.Food {
 			c.Snake.Score++
-			b.Grid[c.Snake.Head.X][c.Snake.Head.Y] = '◕'
 			c.Snake.Body = append([]Point{c.Snake.Tail}, c.Snake.Body...)
 			go b.GenerateFood()
 		}
@@ -170,25 +181,39 @@ func (b *Board) Update() {
 
 func (b *Board) Print() string {
 	var output strings.Builder
-	output.WriteString("\t")
-	output.WriteString("┌")
-	for i := 0; i < b.Cols; i++ {
-		output.WriteString("──")
+	output.WriteString("\t┌")
+	for i := 0; i <= b.Cols*2; i++ {
+		output.WriteString("─")
 	}
 	output.WriteString("┐\r\n")
 
 	for i := 0; i < b.Rows; i++ {
-		output.WriteString("\t")
-		output.WriteString("│")
+		output.WriteString("\t│ ")
 		for j := 0; j < b.Cols; j++ {
-			output.WriteString(string(b.Grid[i][j]) + " ")
+			cellSymbol := string(b.Grid[i][j])
+			colored := cellSymbol
+
+			if b.Grid[i][j] == '◆' {
+				colored = foodColor + string('◆') + resetColor
+				output.WriteString(colored + " ")
+				continue
+			}
+			for _, client := range b.Clients {
+				for _, body := range client.Snake.Body {
+					if body.X == i && body.Y == j {
+						colored = client.Color + cellSymbol + resetColor
+						break
+					}
+				}
+			}
+			output.WriteString(colored + " ")
 		}
 		output.WriteString("│\r\n")
 	}
 	output.WriteString("\t")
 	output.WriteString("└")
-	for i := 0; i < b.Cols; i++ {
-		output.WriteString("──")
+	for i := 0; i <= b.Cols*2; i++ {
+		output.WriteString("─")
 	}
 	output.WriteString("┘\r\n")
 
@@ -211,9 +236,11 @@ type Client struct {
 	Keypress string
 	Snake    Snake
 	Name     string
+	Color    string
 }
 
 func (b *Board) addClient(client *Client) {
+	client.Color = snakeColors[len(b.Clients)%len(snakeColors)]
 	b.mu.Lock()
 	b.Clients = append(b.Clients, client)
 	b.mu.Unlock()
@@ -264,7 +291,7 @@ func (b *Board) removeClient(client *Client) {
 		for i := range b.Grid {
 			for j := range b.Grid[i] {
 				if b.Grid[i][j] == '○' {
-					b.Grid[i][j] = '.'
+					b.Grid[i][j] = '·'
 				}
 			}
 		}
@@ -289,7 +316,7 @@ func (b *Board) Run(w http.ResponseWriter, r *http.Request) {
 
 	defer func() {
 		if err := conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, "see ya, mate")); err != nil {
-			fmt.Println("Error writing close message: (can ignore for now)", err)
+			fmt.Println("Error writing close message: (ignore for now)", err)
 		}
 		b.removeClient(client)
 
