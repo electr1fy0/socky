@@ -6,7 +6,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/electr1fy0/socky/board"
+	"github.com/electr1fy0/socky/game.go"
 )
 
 // TODO:
@@ -16,17 +16,22 @@ import (
 // 4. Graceful connection closure and snake removal upn connection(!!!)
 // 5. Name the players
 // 6. Fix double close on clash with wall, unify closing logic
+// 7. Use JSON, probably
 
-const boardHeight = 30
-const boardWidth = 35
+const (
+	boardHeight = 30
+	boardWidth  = 35
+	FoodPeriod  = 8 * time.Second
+	TickRate    = 200 * time.Millisecond
+)
 
 func main() {
-	b := &board.Board{}
+	b := &game.Board{}
 	b.Init(boardHeight, boardWidth)
 	b.Print()
 	go func() {
-		tick := time.NewTicker(board.TickRate)
-		foodTick := time.NewTicker(board.FoodPeriod)
+		tick := time.NewTicker(TickRate)
+		foodTick := time.NewTicker(FoodPeriod)
 		defer tick.Stop()
 		defer foodTick.Stop()
 		for {

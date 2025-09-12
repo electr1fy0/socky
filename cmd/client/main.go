@@ -54,13 +54,12 @@ func main() {
 
 	err = conn.WriteMessage(websocket.TextMessage, []byte("NAME:"+name))
 	buf := make([]byte, 1)
-	over := false
 
 	go func() {
 		for {
 			os.Stdin.Read(buf)
 			if string(buf) == "q" {
-				over = true
+				conn.Close()
 				return
 			}
 			conn.WriteMessage(websocket.TextMessage, buf)
@@ -68,9 +67,7 @@ func main() {
 	}()
 
 	for {
-		if over {
-			return
-		}
+
 		_, msg, err := conn.ReadMessage()
 		if err != nil {
 			// reminder: come on, mate. you're better than this (i'm ashamed)
