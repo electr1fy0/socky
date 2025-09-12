@@ -10,13 +10,8 @@ import (
 )
 
 // TODO:
-// 1. Write board back to the clients
-// 2. Leaderboard
-// 3. Broadcast fn
-// 4. Graceful connection closure and snake removal upn connection(!!!)
-// 5. Name the players
-// 6. Fix double close on clash with wall, unify closing logic
-// 7. Use JSON, probably
+// 1. Fix double close on clash with wall, unify closing logic
+// 2. Use JSON, probably
 
 const (
 	boardHeight = 30

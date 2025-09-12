@@ -1,8 +1,5 @@
 package main
 
-// This is not a part of the server module
-// Run this independently to connect to the servers
-
 import (
 	"fmt"
 	"os"

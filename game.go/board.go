@@ -10,11 +10,12 @@ import (
 type Point struct{ X, Y int }
 
 type Board struct {
-	Rows, Cols int
-	Grid       [][]rune
-	SnakeCount int
-	Clients    []*Client
-	mu         sync.RWMutex
+	Rows, Cols  int
+	Grid        [][]rune
+	SnakeCount  int
+	Clients     []*Client
+	clientCount int
+	mu          sync.RWMutex
 }
 
 func (b *Board) GenerateFood() {
@@ -36,10 +37,9 @@ func (b *Board) Init(rows, cols int) {
 			b.Grid[i][j] = '·'
 		}
 	}
-	b.SnakeCount = 0
 }
 
-func (b *Board) InitSnake(s *Snake) {
+func (b *Board) InsertSnake(s *Snake) {
 	snakelength := 0
 	i := b.Rows / 2
 	for j := 2; j < b.Cols; j++ {
@@ -99,11 +99,11 @@ func (b *Board) Update() {
 			c.Snake.Score++
 
 			c.Snake.Body = append([]Point{c.Snake.Tail}, c.Snake.Body...)
-			// b.GenerateFood()
 		}
 		b.Grid[c.Snake.Head.X][c.Snake.Head.Y] = '◕'
 
 	}
+
 	for _, c := range toRemove {
 		b.removeClient(c)
 		c.Conn.Close()

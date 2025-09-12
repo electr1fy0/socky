@@ -27,9 +27,12 @@ type Client struct {
 }
 
 func (b *Board) addClient(client *Client) {
-	client.Color = snakeColors[len(b.Clients)%len(snakeColors)]
+	b.clientCount++
+	client.Color = snakeColors[b.clientCount%len(snakeColors)]
 	b.mu.Lock()
 	b.Clients = append(b.Clients, client)
+	b.InsertSnake(&client.Snake)
+
 	b.mu.Unlock()
 }
 
@@ -87,33 +90,9 @@ func (b *Board) removeClient(client *Client) {
 	}()
 }
 
-func (b *Board) Run(w http.ResponseWriter, r *http.Request) {
-	conn, err := upgrader.Upgrade(w, r, nil)
-	if err != nil {
-		log.Println("Error: ", err)
-		return
-	}
-
-	client := &Client{
-		Conn: conn, ID: r.RemoteAddr,
-	}
-
-	client.Snake.Init()
-	b.addClient(client)
-	b.InitSnake(&client.Snake)
-
-	defer func() {
-		if err := conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, "see ya, mate")); err != nil {
-			fmt.Println("Error writing close message: (ignore for now)", err)
-		}
-		b.removeClient(client)
-
-		fmt.Println("client left")
-		conn.Close()
-	}()
-
+func getKeypresses(client *Client) {
 	for {
-		_, msg, err := conn.ReadMessage()
+		_, msg, err := client.Conn.ReadMessage()
 
 		if err != nil {
 			fmt.Println("Err reading:", err)
@@ -149,4 +128,24 @@ func (b *Board) Run(w http.ResponseWriter, r *http.Request) {
 		}
 		fmt.Print("received:", client.Keypress, "\r")
 	}
+}
+
+func (b *Board) Run(w http.ResponseWriter, r *http.Request) {
+	conn, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		log.Println("Error: ", err)
+		return
+	}
+	client := &Client{
+		Conn: conn, ID: r.RemoteAddr,
+	}
+	defer func() {
+		b.removeClient(client)
+		fmt.Println("client left")
+		conn.Close()
+	}()
+	client.Snake.Init()
+	b.addClient(client)
+
+	getKeypresses(client)
 }
