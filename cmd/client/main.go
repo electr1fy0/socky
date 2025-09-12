@@ -27,6 +27,7 @@ func main() {
 	fmt.Scanln(&name)
 
 	conn, _, err := websocket.DefaultDialer.Dial(url, nil)
+
 	if err != nil {
 		fmt.Println("Error dialing up:", err)
 		os.Exit(1)
@@ -40,7 +41,6 @@ func main() {
 		fmt.Println("Error writing message:", err)
 		os.Exit(1)
 	}
-
 	oldState, err = term.MakeRaw(int(os.Stdin.Fd()))
 	defer term.Restore(int(os.Stdin.Fd()), oldState)
 	if err != nil {
@@ -66,7 +66,7 @@ func main() {
 		_, msg, err := conn.ReadMessage()
 		if err != nil {
 			// reminder: come on, mate. you're better than this (i'm ashamed)
-			fmt.Println("\n\r\tYOU LOST!")
+			fmt.Println("\n\r\tYou lost!")
 			break
 		}
 		clear()

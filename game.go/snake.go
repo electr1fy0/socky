@@ -50,18 +50,20 @@ func (s *Snake) shift(newHead Point) {
 }
 
 func (s *Snake) Move() {
+	var newHead Point
 	switch s.Direction {
 	case Up:
-		newHead := Point{s.Head.X - 1, s.Head.Y}
-		s.shift(newHead)
+		newHead = Point{s.Head.X - 1, s.Head.Y}
 	case Down:
-		newHead := Point{s.Head.X + 1, s.Head.Y}
-		s.shift(newHead)
+		newHead = Point{s.Head.X + 1, s.Head.Y}
+
 	case Left:
-		newHead := Point{s.Head.X, s.Head.Y - 1}
-		s.shift(newHead)
+		newHead = Point{s.Head.X, s.Head.Y - 1}
+
 	case Right:
-		newHead := Point{s.Head.X, s.Head.Y + 1}
-		s.shift(newHead)
+		newHead = Point{s.Head.X, s.Head.Y + 1}
 	}
+
+	s.shift(newHead)
+
 }
