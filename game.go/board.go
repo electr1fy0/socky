@@ -110,6 +110,22 @@ func (b *Board) Update() {
 	}
 }
 
+func getScore(clients []*Client) string {
+	bold := "\033[1m"
+	scoreText := "\n\r\t " + bold + "------------------------------- SCORES --------------------------------" + resetColor + "\r\n"
+	for _, client := range clients {
+		name := client.Name
+		score := client.Snake.Score
+
+		bar := strings.Repeat("█", score)
+		bar = client.Color + bar + resetColor
+		scoreText += fmt.Sprintf("\t %-8s | %3d  %s\r\n", name, score, bar)
+	}
+
+	scoreText += "\n\r"
+	return scoreText
+}
+
 func (b *Board) Print() string {
 	var output strings.Builder
 	output.WriteString("\t┌")

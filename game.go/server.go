@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 
@@ -45,13 +44,8 @@ func (b *Board) BroadCast() {
 
 	b.mu.RUnlock()
 
-	scoreText := "\tScores:\r"
-	for _, client := range clients {
-		name := client.Name
-		scoreText += "\n\r\t" + name + ": " + strconv.Itoa(client.Snake.Score)
-	}
+	scoreText := getScore(clients)
 
-	scoreText += "\n\r"
 	for _, client := range clients {
 		if err := client.Conn.WriteMessage(websocket.TextMessage, []byte(boardState+scoreText+"\n\n")); err != nil {
 			b.removeClient(client)

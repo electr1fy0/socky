@@ -13,8 +13,6 @@ var oldState *term.State
 var err error
 var url = "ws://localhost:8080/"
 
-var conn *websocket.Conn
-
 func clear() {
 	fmt.Printf("\033[H\033[2J")
 }
@@ -23,16 +21,16 @@ func main() {
 	// if u := os.Getenv("SOCKY_SERVER_URL"); u != "" {
 	// 	url = u
 	// }
+
+	var name string
+	fmt.Print("Enter your name (keep it short): ")
+	fmt.Scanln(&name)
+
 	conn, _, err := websocket.DefaultDialer.Dial(url, nil)
 	if err != nil {
 		fmt.Println("Error dialing up:", err)
 		os.Exit(1)
 	}
-
-	var name string
-	fmt.Print("Enter your name: ")
-	fmt.Scanln(&name)
-
 	defer func() {
 		conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, "closing from client"))
 		conn.Close()
