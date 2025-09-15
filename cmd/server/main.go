@@ -6,24 +6,23 @@ import (
 	"os"
 	"time"
 
-	"github.com/electr1fy0/socky/game.go"
+	"github.com/electr1fy0/socky/game"
 )
 
 // TODO:
 // 1. Fix double close on clash with wall, unify closing logic
-// 2. Use JSON, probably
 
 const (
 	boardHeight = 30
 	boardWidth  = 35
 	FoodPeriod  = 8 * time.Second
-	TickRate    = 200 * time.Millisecond
+	TickRate    = 100 * time.Millisecond
 )
 
 func main() {
 	b := &game.Board{}
 	b.Init(boardHeight, boardWidth)
-	b.Print()
+	// b.Print()
 	go func() {
 		tick := time.NewTicker(TickRate)
 		foodTick := time.NewTicker(FoodPeriod)

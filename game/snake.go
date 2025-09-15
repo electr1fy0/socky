@@ -2,19 +2,6 @@ package game
 
 const MinSnakeLength = 5
 
-var snakeColors = []string{
-	"\033[31m", // Red
-	"\033[33m", // Yellow
-	"\033[32m", // Green
-	"\033[34m", // Blue
-	"\033[35m", // Magenta
-	"\033[36m", // Cyan
-	"\033[37m", // White
-}
-
-var foodColor = "\033[38;5;208m" // Bright orange
-const resetColor = "\033[0m"
-
 type Direction int
 
 const (

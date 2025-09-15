@@ -1,6 +1,7 @@
 package game
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -10,24 +11,25 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+var snakeColors = []string{
+	"red",
+	"yellow",
+	"green",
+	"blue",
+	"magenta",
+	"cyan",
+	"white",
+}
+
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
 	CheckOrigin:     func(r *http.Request) bool { return true },
 }
 
-type Client struct {
-	Conn     *websocket.Conn
-	ID       string
-	Keypress string
-	Snake    Snake
-	Name     string
-	Color    string
-}
-
 func (b *Board) addClient(client *Client) {
-	b.clientCount++
-	client.Color = snakeColors[b.clientCount%len(snakeColors)]
+	b.ClientCount++
+	client.Color = snakeColors[b.ClientCount%len(snakeColors)]
 	b.mu.Lock()
 	b.Clients = append(b.Clients, client)
 	b.InsertSnake(&client.Snake)
@@ -36,18 +38,29 @@ func (b *Board) addClient(client *Client) {
 }
 
 func (b *Board) BroadCast() {
+	// b.Print()
 	b.mu.RLock()
-	boardState := b.Print()
+	// boardState := b.Print()
 	clients := make([]*Client, len(b.Clients))
-
+	// gridString := b.GridString
 	copy(clients, b.Clients)
-
 	b.mu.RUnlock()
+	scores := make(map[string]int)
+	colors := make(map[string]string)
 
-	scoreText := getScore(clients)
-
+	msg := Message{b.Grid, clients}
+	data, err := json.Marshal(msg)
+	if err != nil {
+		fmt.Println("error marshalling:", err)
+		return
+	}
 	for _, client := range clients {
-		if err := client.Conn.WriteMessage(websocket.TextMessage, []byte(boardState+scoreText+"\n\n")); err != nil {
+		scores[client.Name] = client.Snake.Score
+		colors[client.Name] = client.Color
+	}
+	for _, client := range clients {
+
+		if err := client.Conn.WriteMessage(websocket.TextMessage, data); err != nil {
 			b.removeClient(client)
 			client.Conn.Close()
 		}
@@ -61,10 +74,10 @@ func (b *Board) removeClient(client *Client) {
 		if c.ID == client.ID {
 			for _, point := range c.Snake.Body {
 				if point.X >= 0 && point.X < b.Rows && point.Y >= 0 && point.Y < b.Cols {
-					b.Grid[point.X][point.Y] = '○'
+					b.Grid[point.X][point.Y] = "○"
 				}
 			}
-			b.Grid[c.Snake.Tail.X][c.Snake.Tail.Y] = '○'
+			b.Grid[c.Snake.Tail.X][c.Snake.Tail.Y] = "○"
 			b.Clients = append(b.Clients[:i], b.Clients[i+1:]...)
 			break
 		}
@@ -75,8 +88,8 @@ func (b *Board) removeClient(client *Client) {
 		b.mu.Lock()
 		for i := range b.Grid {
 			for j := range b.Grid[i] {
-				if b.Grid[i][j] == '○' {
-					b.Grid[i][j] = '·'
+				if b.Grid[i][j] == "○" {
+					b.Grid[i][j] = "·"
 				}
 			}
 		}
