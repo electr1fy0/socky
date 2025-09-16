@@ -52,6 +52,7 @@ type Client struct {
 }
 
 type Message struct {
+	Type    string     `json:"type"`
 	Grid    [][]string `json:"grid"`
 	Clients []*Client  `json:"clients"`
 }
@@ -196,11 +197,16 @@ func main() {
 
 	for {
 		_, msg, err := conn.ReadMessage()
+
 		if err != nil {
 			gameOverBanner()
 			os.Exit(0)
 		}
 		json.Unmarshal(msg, &game)
+		if game.Type == "over" {
+			gameOverBanner()
+			os.Exit(0)
+		}
 		clear()
 		fmt.Print(Print())
 	}

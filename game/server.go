@@ -47,7 +47,7 @@ func (b *Board) BroadCast() {
 	scores := make(map[string]int)
 	colors := make(map[string]string)
 
-	msg := Message{b.Grid, clients}
+	msg := Message{"normal", b.Grid, clients}
 	data, err := json.Marshal(msg)
 	if err != nil {
 		fmt.Println("error marshalling:", err)

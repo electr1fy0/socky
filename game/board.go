@@ -35,6 +35,7 @@ type Client struct {
 	Conn     *websocket.Conn `json:"-"`
 }
 type Message struct {
+	Type    string     `json:"type"`
 	Grid    [][]string `json:"grid"`
 	Clients []*Client  `json:"clients"`
 }
@@ -123,6 +124,8 @@ func (b *Board) Update() {
 	}
 
 	for _, c := range toRemove {
+		var over = Message{"over", b.Grid, b.Clients}
+		c.Conn.WriteJSON(over)
 		b.removeClient(c)
 		c.Conn.Close()
 	}
