@@ -16,7 +16,7 @@ const (
 	boardHeight = 30
 	boardWidth  = 35
 	FoodPeriod  = 8 * time.Second
-	TickRate    = 200 * time.Millisecond
+	TickRate    = 150 * time.Millisecond
 )
 
 func main() {

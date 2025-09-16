@@ -6,7 +6,6 @@ import (
 	"log"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/gorilla/websocket"
 )
@@ -74,27 +73,16 @@ func (b *Board) removeClient(client *Client) {
 		if c.ID == client.ID {
 			for _, point := range c.Snake.Body {
 				if point.X >= 0 && point.X < b.Rows && point.Y >= 0 && point.Y < b.Cols {
-					b.Grid[point.X][point.Y] = "○"
+					b.Grid[point.X][point.Y] = "·"
 				}
 			}
-			b.Grid[c.Snake.Tail.X][c.Snake.Tail.Y] = "○"
+			b.Grid[c.Snake.Tail.X][c.Snake.Tail.Y] = "·"
 			b.Clients = append(b.Clients[:i], b.Clients[i+1:]...)
+			b.SnakeCount--
 			break
 		}
 	}
 	b.mu.Unlock()
-	go func() {
-		time.Sleep(1 * time.Second)
-		b.mu.Lock()
-		for i := range b.Grid {
-			for j := range b.Grid[i] {
-				if b.Grid[i][j] == "○" {
-					b.Grid[i][j] = "·"
-				}
-			}
-		}
-		b.mu.Unlock()
-	}()
 }
 
 func getKeypresses(client *Client) {

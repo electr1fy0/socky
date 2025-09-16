@@ -59,7 +59,6 @@ type Message struct {
 func clear() {
 	fmt.Printf("\033[H\033[2J")
 }
-
 func Print() string {
 	var output strings.Builder
 
@@ -69,40 +68,55 @@ func Print() string {
 	}
 	output.WriteString("╗\t\r\n")
 
-	for i := 0; i < len(game.Grid); i++ {
-		output.WriteString("\t║ ")
-		for j := 0; j < len(game.Grid[0]); j++ {
-			cellSymbol := string(game.Grid[i][j])
-			colored := "  "
+	shadowColor := "\033[38;5;240m"
+	board := make([][]string, len(game.Grid))
+	for i := range board {
+		board[i] = make([]string, len(game.Grid[0]))
+		for j := range board[i] {
+			board[i][j] = "  "
+		}
+	}
 
-			switch cellSymbol {
-			case "f":
-				colored = foodColor + "◆ " + resetColor
-			case "b":
-				colored = "◉ "
-			case "h":
-				colored = "◕ "
+	for i := 0; i < len(game.Grid); i++ {
+		for j := 0; j < len(game.Grid[0]); j++ {
+			if game.Grid[i][j] == "f" {
+				board[i][j] = foodColor + "◆ " + resetColor
+			}
+		}
+	}
+
+	for _, client := range game.Clients {
+		color := snakeColors[client.Color]
+		for _, body := range client.Snake.Body {
+			// body or head?
+			symbol := "█ "
+			if body == client.Snake.Head {
+				symbol = "◉ "
 			}
 
-			for _, client := range game.Clients {
-				for _, body := range client.Snake.Body {
-					if body.X == i && body.Y == j {
-						colored = snakeColors[client.Color] + colored + resetColor
-						break
-					}
+			board[body.X][body.Y] = color + symbol + resetColor
+
+			if body.X+1 < len(board) && body.Y+1 < len(board[0]) {
+				if board[body.X+1][body.Y+1] == "  " {
+					board[body.X+1][body.Y+1] = shadowColor + "░ " + resetColor
 				}
 			}
+		}
+	}
 
-			output.WriteString(colored)
+	for i := 0; i < len(board); i++ {
+		output.WriteString("\t║ ")
+		for j := 0; j < len(board[0]); j++ {
+			output.WriteString(board[i][j])
 		}
 		output.WriteString("║\t\r\n")
 	}
 
 	output.WriteString("\t╚")
-	for i := 0; i <= len(game.Grid[0])*2; i++ {
+	for i := 0; i <= len(board[0])*2; i++ {
 		output.WriteString("═")
 	}
-	output.WriteString("╝\t\r\n")
+	output.WriteString("╝\t\r\n" + getScore() + "\r\t<hjkl> or <wasd> to move. <q> to quit.\n\r")
 
 	return output.String()
 }
@@ -138,13 +152,15 @@ func main() {
 			url = u
 		}
 	}
+	clear()
+
 	welcomeBanner()
-	fmt.Print("Enter your name (keep it short): ")
+	fmt.Print("\t Enter your name (keep it short): ")
 	fmt.Scanln(&name)
 
 	conn, _, err := websocket.DefaultDialer.Dial(url, nil)
 	if err != nil {
-		fmt.Println("Error dialing up:", err)
+		fmt.Println("Server is not ready.")
 		os.Exit(1)
 	}
 	defer func() {
@@ -166,7 +182,6 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-
 	buf := make([]byte, 1)
 	go func() {
 		for {
@@ -188,8 +203,6 @@ func main() {
 		json.Unmarshal(msg, &game)
 		clear()
 		fmt.Print(Print())
-		fmt.Print(getScore())
-		fmt.Print("\r\t<hjkl> or <wasd> to move. <q> to quit.\n\r")
 	}
 }
 
