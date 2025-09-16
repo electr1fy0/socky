@@ -16,13 +16,14 @@ before:
     - go generate ./...
 
 builds:
-  - env:
+  - id: client
+    main: ./cmd/client/main.go
+    env:
       - CGO_ENABLED=0
     goos:
       - linux
       - windows
       - darwin
-
 archives:
   - formats: [tar.gz]
     # this name template makes the OS and Arch compatible with the results of `uname`.
