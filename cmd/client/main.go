@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"sort"
 	"strings"
 
 	"github.com/gorilla/websocket"
@@ -62,54 +63,69 @@ func clear() {
 func Print() string {
 	var output strings.Builder
 
-	output.WriteString("\t┌")
+	output.WriteString("\n\n\t╔")
 	for i := 0; i <= len(game.Grid[0])*2; i++ {
-		output.WriteString("─")
+		output.WriteString("═")
 	}
-	output.WriteString("┐\t\r\n")
+	output.WriteString("╗\t\r\n")
 
 	for i := 0; i < len(game.Grid); i++ {
-		output.WriteString("\t│ ")
+		output.WriteString("\t║ ")
 		for j := 0; j < len(game.Grid[0]); j++ {
 			cellSymbol := string(game.Grid[i][j])
-			colored := cellSymbol
+			colored := "  "
 
-			if cellSymbol == "f" {
-				output.WriteString(foodColor + "f " + resetColor)
-				continue
+			switch cellSymbol {
+			case "f":
+				colored = foodColor + "◆ " + resetColor
+			case "b":
+				colored = "◉ "
+			case "h":
+				colored = "◕ "
 			}
 
 			for _, client := range game.Clients {
 				for _, body := range client.Snake.Body {
 					if body.X == i && body.Y == j {
-						colored = snakeColors[client.Color] + cellSymbol + resetColor
+						colored = snakeColors[client.Color] + colored + resetColor
 						break
 					}
 				}
 			}
 
-			output.WriteString(colored + " ")
+			output.WriteString(colored)
 		}
-		output.WriteString("│\t\r\n")
+		output.WriteString("║\t\r\n")
 	}
 
-	output.WriteString("\t└")
+	output.WriteString("\t╚")
 	for i := 0; i <= len(game.Grid[0])*2; i++ {
-		output.WriteString("─")
+		output.WriteString("═")
 	}
-	output.WriteString("┘\t\r\n")
+	output.WriteString("╝\t\r\n")
 
 	return output.String()
 }
 
 func getScore() string {
 	bold := "\033[1m"
-	scoreText := "\n\t " + bold + "------------------------------- SCORES --------------------------------" + resetColor + "\r\n"
+	scoreText := "\n\t " + bold + "------------------------------ SCOREBOARD ------------------------------" + resetColor + "\r\n\n"
 
-	for _, client := range game.Clients {
+	clients := make([]*Client, len(game.Clients))
+	copy(clients, game.Clients)
+
+	sort.Slice(clients, func(i, j int) bool {
+		return clients[i].Snake.Score > clients[j].Snake.Score
+	})
+
+	for rank, client := range clients {
 		bar := strings.Repeat("█", client.Snake.Score)
 		bar = snakeColors[client.Color] + bar + resetColor
-		scoreText += fmt.Sprintf("\t %-8s | %3d  %s\n", client.Name, client.Snake.Score, bar)
+		crown := ""
+		if rank == 0 {
+			crown = " 👑"
+		}
+		scoreText += fmt.Sprintf("\t %2d. %-8s | %3d  %s%s\r\n", rank+1, client.Name, client.Snake.Score, bar, crown)
 	}
 
 	scoreText += "\n"
