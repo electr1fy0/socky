@@ -1,13 +1,15 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
 	"sort"
 	"strings"
+	"time"
 
-	"github.com/gorilla/websocket"
+	"github.com/coder/websocket"
 	"golang.org/x/term"
 )
 
@@ -147,6 +149,10 @@ func getScore() string {
 	return scoreText
 }
 
+const (
+	writeWait = time.Second * 5
+)
+
 func main() {
 	if len(os.Args) >= 2 && os.Args[1] == "internet" {
 		if u := os.Getenv("SOCKY_SERVER_URL"); u != "" {
@@ -159,21 +165,23 @@ func main() {
 	fmt.Print("\t Enter your name (keep it short): ")
 	fmt.Scanln(&name)
 
-	conn, _, err := websocket.DefaultDialer.Dial(url, nil)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+
+	conn, _, err := websocket.Dial(ctx, url, nil)
+	defer cancel()
 	if err != nil {
 		fmt.Println("Server is not ready.")
 		os.Exit(1)
 	}
 	defer func() {
-		conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, "closing from client"))
-		conn.Close()
+		conn.Close(websocket.StatusNormalClosure, "closing from client")
 	}()
 
-	if err = conn.WriteMessage(websocket.TextMessage, []byte("client has connected")); err != nil {
+	if err = conn.Write(ctx, websocket.MessageText, []byte("client has connected")); err != nil {
 		fmt.Println("Error writing message:", err)
 		os.Exit(1)
 	}
-	if err = conn.WriteMessage(websocket.TextMessage, []byte("NAME:"+name)); err != nil {
+	if err = conn.Write(ctx, websocket.MessageText, []byte("NAME:"+name)); err != nil {
 		fmt.Println("Error sending name:", err)
 		os.Exit(1)
 	}
@@ -188,15 +196,15 @@ func main() {
 		for {
 			os.Stdin.Read(buf)
 			if string(buf) == "q" {
-				conn.Close()
+				conn.Close(websocket.StatusNormalClosure, "closing from client")
 				return
 			}
-			conn.WriteMessage(websocket.TextMessage, buf)
+			conn.Write(ctx, websocket.MessageText, buf)
 		}
 	}()
 
 	for {
-		_, msg, err := conn.ReadMessage()
+		_, msg, err := conn.Read(ctx)
 
 		if err != nil {
 			gameOverBanner()
