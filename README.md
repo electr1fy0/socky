@@ -13,26 +13,27 @@ Socky is a real-time, multiplayer snake game playable directly in your terminal.
 ```mermaid
 graph TD
     subgraph Clients
-        P1[Player 1 Client]
-        P2[Player 2 Client]
+        P1[Player 1]
+        P2[Player 2]
     end
 
-    subgraph Socky Server
-        S[Go Socky Server]
-        subgraph Game Rooms
-            R1["Room 1 (Game Loop)"]
-            R2["Room 2 (Game Loop)"]
-        end
+    subgraph Server
+        S[Socky Server]
     end
 
-    P1 -- "HTTP: /create or /join" --> S
-    P2 -- "HTTP: /join" --> S
+    subgraph Rooms
+        R1[Game Room 1]
+        R2[Game Room 2]
+    end
 
-    S -- "Upgrades to WebSocket" --> P1
-    S -- "Upgrades to WebSocket" --> P2
+    P1 -- HTTP --> S
+    P2 -- HTTP --> S
 
-    P1 -- "WebSocket" --> R1
-    P2 -- "WebSocket" --> R1
+    S -- Joins --> R1
+    S -- Joins --> R2
+
+    P1 -- WebSocket --> R1
+    P2 -- WebSocket --> R1
 ```
 
 ## Features
