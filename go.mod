@@ -3,6 +3,7 @@ module github.com/electr1fy0/socky
 go 1.24.5
 
 require (
+	github.com/coder/websocket v1.8.14
 	github.com/gorilla/websocket v1.5.3
 	golang.org/x/term v0.34.0
 )

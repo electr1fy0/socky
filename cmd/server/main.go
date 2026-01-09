@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"time"
@@ -22,7 +23,7 @@ const (
 func main() {
 	b := &game.Board{}
 	b.Init(boardHeight, boardWidth)
-	// b.Print()
+
 	go func() {
 		tick := time.NewTicker(TickRate)
 		foodTick := time.NewTicker(FoodPeriod)
@@ -46,9 +47,7 @@ func main() {
 	}
 
 	http.HandleFunc("/", b.Run)
-	fmt.Println("Server is up at port", port)
+	fmt.Printf("Starting server at port %s...\n", port)
 
-	if err := http.ListenAndServe(":"+port, nil); err != nil {
-		fmt.Println("Error listening: ", err)
-	}
+	log.Fatal(http.ListenAndServe(":"+port, nil))
 }

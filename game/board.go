@@ -1,13 +1,15 @@
 package game
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"math/rand/v2"
 	"slices"
 	"sync"
 
-	"github.com/gorilla/websocket"
+	"github.com/coder/websocket"
+	"github.com/coder/websocket/wsjson"
 )
 
 type Point struct {
@@ -125,9 +127,11 @@ func (b *Board) Update() {
 
 	for _, c := range toRemove {
 		var over = Message{"over", b.Grid, b.Clients}
-		c.Conn.WriteJSON(over)
+		writeCtx, cancel := context.WithTimeout(context.Background(), writeWait)
+		wsjson.Write(writeCtx, c.Conn, over)
+		cancel()
 		b.removeClient(c)
-		c.Conn.Close()
+		c.Conn.Close(websocket.StatusNormalClosure, "snake died")
 	}
 }
 

@@ -1,13 +1,19 @@
 package game
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 	"strings"
+	"time"
 
-	"github.com/gorilla/websocket"
+	"github.com/coder/websocket"
+)
+
+const (
+	writeWait = time.Second * 5
 )
 
 var snakeColors = []string{
@@ -18,12 +24,6 @@ var snakeColors = []string{
 	"magenta",
 	"cyan",
 	"white",
-}
-
-var upgrader = websocket.Upgrader{
-	ReadBufferSize:  1024,
-	WriteBufferSize: 1024,
-	CheckOrigin:     func(r *http.Request) bool { return true },
 }
 
 func (b *Board) addClient(client *Client) {
@@ -37,11 +37,9 @@ func (b *Board) addClient(client *Client) {
 }
 
 func (b *Board) BroadCast() {
-	// b.Print()
 	b.mu.RLock()
-	// boardState := b.Print()
 	clients := make([]*Client, len(b.Clients))
-	// gridString := b.GridString
+
 	copy(clients, b.Clients)
 	b.mu.RUnlock()
 	scores := make(map[string]int)
@@ -58,11 +56,14 @@ func (b *Board) BroadCast() {
 		colors[client.Name] = client.Color
 	}
 	for _, client := range clients {
-
-		if err := client.Conn.WriteMessage(websocket.TextMessage, data); err != nil {
+		writeCtx, cancel := context.WithTimeout(context.Background(), writeWait)
+		if err := client.Conn.Write(writeCtx, websocket.MessageText, data); err != nil {
+			cancel()
 			b.removeClient(client)
-			client.Conn.Close()
+			client.Conn.Close(websocket.StatusAbnormalClosure, "slow client")
+			return
 		}
+		cancel()
 	}
 }
 
@@ -85,9 +86,9 @@ func (b *Board) removeClient(client *Client) {
 	b.mu.Unlock()
 }
 
-func getKeypresses(client *Client) {
+func getKeypresses(client *Client, ctx context.Context) {
 	for {
-		_, msg, err := client.Conn.ReadMessage()
+		_, msg, err := client.Conn.Read(ctx)
 
 		if err != nil {
 			fmt.Println("Err reading:", err)
@@ -126,21 +127,24 @@ func getKeypresses(client *Client) {
 }
 
 func (b *Board) Run(w http.ResponseWriter, r *http.Request) {
-	conn, err := upgrader.Upgrade(w, r, nil)
+	conn, err := websocket.Accept(w, r, &websocket.AcceptOptions{
+		InsecureSkipVerify: true,
+	})
+
 	if err != nil {
 		log.Println("Error: ", err)
 		return
 	}
+
 	client := &Client{
 		Conn: conn, ID: r.RemoteAddr,
 	}
 	defer func() {
 		b.removeClient(client)
-		fmt.Println("client left")
-		conn.Close()
+		conn.Close(websocket.StatusNormalClosure, "client left")
 	}()
 	client.Snake.Init()
 	b.addClient(client)
 
-	getKeypresses(client)
+	getKeypresses(client, context.Background())
 }
