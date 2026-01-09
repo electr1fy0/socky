@@ -63,12 +63,12 @@ func (R *RoomManager) HandleCreate(w http.ResponseWriter, r *http.Request) {
 	R.Mu.Lock()
 	R.Rooms[room.ID] = room
 	R.Mu.Unlock()
-	go room.InitGame()
 	w.Header().Set("Content-Type", "application/json")
 	resp := map[string]string{
 		"ID": room.ID,
 	}
 	json.NewEncoder(w).Encode(resp)
+	go room.InitGame()
 }
 
 func (R *RoomManager) HandleJoin(w http.ResponseWriter, r *http.Request) {

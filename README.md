@@ -25,19 +25,14 @@ graph TD
         end
     end
 
-    P1 -- Connects to --> S
-    P2 -- Connects to --> S
+    P1 -- "HTTP: /create or /join" --> S
+    P2 -- "HTTP: /join" --> S
 
-    S -- Handles HTTP Requests --> R1
-    S -- Handles HTTP Requests --> R2
+    S -- "Upgrades to WebSocket" --> P1
+    S -- "Upgrades to WebSocket" --> P2
 
-    R1 -- Manages Players & Game State --> P1, P2 (via S)
-    R2 -- Manages Players & Game State --> P1, P2 (via S)
-
-    S -- Establishes WebSockets --> R1
-    S -- Establishes WebSockets --> R2
-    R1 -- Broadcasts Game Updates & Receives Input --> P1, P2 (via S through WebSockets)
-    R2 -- Broadcasts Game Updates & Receives Input --> P1, P2 (via S through WebSockets)
+    P1 -- "WebSocket" --> R1
+    P2 -- "WebSocket" --> R1
 ```
 
 ## Features
@@ -89,7 +84,7 @@ graph TD
 3.  **Join a Game Room (from a client terminal):**
 
     ```bash
-    go run cmd/client/main.go ws://localhost:8080/join/<ROOM_ID>
+    go run cmd/client/main.go <ROOM_ID>
     ```
     Replace `<ROOM_ID>` with the ID obtained in the previous step. Multiple players can join the same room.
 

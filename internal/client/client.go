@@ -67,10 +67,11 @@ func JoinRoom(id string) (*websocket.Conn, error) {
 }
 
 func InitiateGame() {
-	op := os.Args[1]
-	if "create" == strings.TrimSpace(op) {
-		fmt.Println("Room ID:", CreateRoom())
-		fmt.Println("Pass this ID as an argument to socky on next run.")
+	id := os.Args[1]
+	if "create" == strings.TrimSpace(id) {
+		newRoomID := CreateRoom()
+		fmt.Println("Room ID:", newRoomID)
+		fmt.Println("Share this ID with a friend to join the game.")
 		return
 	}
 
@@ -86,8 +87,11 @@ func InitiateGame() {
 		os.Exit(1)
 	}
 
-	id := CreateRoom()
-	conn, _ := JoinRoom(id)
+	conn, err := JoinRoom(id)
+	if err != nil {
+		fmt.Println("Failed to join room:", err)
+		os.Exit(1)
+	}
 	defer conn.Close(websocket.StatusNormalClosure, "closing from client")
 
 	if err := conn.Write(ctx, websocket.MessageText, []byte("client has connected")); err != nil {
