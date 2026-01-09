@@ -30,7 +30,7 @@ func RenderGame() string {
 	var output strings.Builder
 
 	output.WriteString("\n\n\t╔")
-	for range len(message.Grid[0]) * 2 {
+	for range len(message.Grid[0])*2 + 1 {
 		output.WriteString("═")
 	}
 	output.WriteString("╗\t\r\n")

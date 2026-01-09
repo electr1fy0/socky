@@ -8,34 +8,6 @@ Socky is a real-time, multiplayer snake game playable directly in your terminal.
 <img style="width: 60%; height="auto" alt="Screenshot 2025-09-18 at 11 41 03" src="https://github.com/user-attachments/assets/e89495ae-e4e8-4ef9-9828-6f398c3f6db6" />
 </div>
 
-## Architecture
-
-```mermaid
-graph LR
-    subgraph Clients
-        P1[Player 1]
-        P2[Player 2]
-    end
-
-    subgraph Server
-        S[Socky Server]
-    end
-
-    subgraph Rooms
-        R1[Game Room 1]
-        R2[Game Room 2]
-    end
-
-    P1 -- HTTP --> S
-    P2 -- HTTP --> S
-
-    S -- Joins --> R1
-    S -- Joins --> R2
-
-    P1 -- WebSocket --> R1
-    P2 -- WebSocket --> R1
-```
-
 ## Features
 
 -   **Real-time Multiplayer:** Play against friends in live, interactive game sessions.
@@ -56,7 +28,7 @@ graph LR
 1.  Clone the repository:
 
     ```bash
-    git clone https://github.com/your-username/socky.git
+    git clone https://github.com/electr1fy0/socky.git
     cd socky
     ```
 

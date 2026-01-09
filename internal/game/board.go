@@ -128,8 +128,6 @@ func Clear() {
 	fmt.Printf("\033[H\033[2J")
 }
 
-
-
 func (b *Board) AddClient(client *Client) {
 	client.Color = snakeColors[(len(b.Clients)+1)%len(snakeColors)]
 	b.mu.Lock()
