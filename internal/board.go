@@ -1,4 +1,4 @@
-package game
+package internal
 
 import (
 	"context"
@@ -6,41 +6,10 @@ import (
 	"fmt"
 	"math/rand/v2"
 	"slices"
-	"sync"
 
 	"github.com/coder/websocket"
 	"github.com/coder/websocket/wsjson"
 )
-
-type Point struct {
-	X int `json:"x"`
-	Y int `json:"y"`
-}
-
-type Board struct {
-	Rows        int          `json:"rows"`
-	Cols        int          `json:"cols"`
-	Grid        [][]string   `json:"grid"`
-	GridString  string       `json:"gridString"`
-	SnakeCount  int          `json:"snakeCount"`
-	Clients     []*Client    `json:"clients"`
-	ClientCount int          `json:"-"`
-	mu          sync.RWMutex `json:"-"`
-}
-
-type Client struct {
-	ID       string          `json:"id"`
-	Keypress string          `json:"keypress"`
-	Snake    Snake           `json:"snake"`
-	Name     string          `json:"name"`
-	Color    string          `json:"color"`
-	Conn     *websocket.Conn `json:"-"`
-}
-type Message struct {
-	Type    string     `json:"type"`
-	Grid    [][]string `json:"grid"`
-	Clients []*Client  `json:"clients"`
-}
 
 func (b *Board) GenerateFood() {
 	x := rand.IntN(b.Rows)

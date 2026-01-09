@@ -1,23 +1,4 @@
-package game
-
-const MinSnakeLength = 5
-
-type Direction int
-
-const (
-	Up Direction = iota
-	Down
-	Left
-	Right
-)
-
-type Snake struct {
-	Body      []Point
-	Head      Point
-	Tail      Point
-	Direction Direction
-	Score     int
-}
+package internal
 
 func (s *Snake) Init() {
 	s.Body = make([]Point, MinSnakeLength)

@@ -1,4 +1,4 @@
-package game
+package internal
 
 import (
 	"context"
@@ -27,8 +27,7 @@ var snakeColors = []string{
 }
 
 func (b *Board) addClient(client *Client) {
-	b.ClientCount++
-	client.Color = snakeColors[b.ClientCount%len(snakeColors)]
+	client.Color = snakeColors[(len(b.Clients)+1)%len(snakeColors)]
 	b.mu.Lock()
 	b.Clients = append(b.Clients, client)
 	b.InsertSnake(&client.Snake)
@@ -139,10 +138,12 @@ func (b *Board) Run(w http.ResponseWriter, r *http.Request) {
 	client := &Client{
 		Conn: conn, ID: r.RemoteAddr,
 	}
+
 	defer func() {
 		b.removeClient(client)
 		conn.Close(websocket.StatusNormalClosure, "client left")
 	}()
+
 	client.Snake.Init()
 	b.addClient(client)
 

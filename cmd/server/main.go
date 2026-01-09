@@ -7,11 +7,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/electr1fy0/socky/game"
+	"github.com/electr1fy0/socky/internal"
 )
-
-// TODO:
-// 1. Fix double close on clash with wall, unify closing logic
 
 const (
 	boardHeight = 30
@@ -21,32 +18,16 @@ const (
 )
 
 func main() {
-	b := &game.Board{}
-	b.Init(boardHeight, boardWidth)
 
-	go func() {
-		tick := time.NewTicker(TickRate)
-		foodTick := time.NewTicker(FoodPeriod)
-		defer tick.Stop()
-		defer foodTick.Stop()
-		for {
-			select {
-			case <-tick.C:
-				b.Update()
-				b.ClearBoard()
-				b.BroadCast()
-			case <-foodTick.C:
-				b.GenerateFood()
-			}
-		}
-	}()
+	room := internal.NewRoom()
+	go room.InitRoom()
 
 	port := "8080"
 	if p := os.Getenv("PORT"); p != "" {
 		port = p
 	}
 
-	http.HandleFunc("/", b.Run)
+	http.HandleFunc("/", room.Board.Run)
 	fmt.Printf("Starting server at port %s...\n", port)
 
 	log.Fatal(http.ListenAndServe(":"+port, nil))
