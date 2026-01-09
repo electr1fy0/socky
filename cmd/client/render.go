@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"sort"
+	"slices"
 	"strings"
 )
 
@@ -86,14 +86,15 @@ func RenderGame() string {
 }
 
 func renderScoreboard() string {
+	scoreBuilder := strings.Builder{}
 	bold := "\033[1m"
-	scoreText := "\n\t " + bold + "------------------------------ SCOREBOARD ------------------------------" + resetColor + "\r\n\n"
+	scoreBuilder.WriteString("\n\t " + bold + "------------------------------ SCOREBOARD ------------------------------" + resetColor + "\r\n\n")
 
 	clients := make([]*Client, len(game.Clients))
 	copy(clients, game.Clients)
 
-	sort.Slice(clients, func(i, j int) bool {
-		return clients[i].Snake.Score > clients[j].Snake.Score
+	slices.SortFunc(clients, func(a, b *Client) int {
+		return b.Snake.Score - a.Snake.Score
 	})
 
 	for rank, client := range clients {
@@ -103,9 +104,10 @@ func renderScoreboard() string {
 		if rank == 0 {
 			crown = " 👑"
 		}
-		scoreText += fmt.Sprintf("\t %2d. %-8s | %3d  %s%s\r\n", rank+1, client.Name, client.Snake.Score, bar, crown)
+
+		fmt.Fprintf(&scoreBuilder, "\t %2d. %-8s | %3d  %s%s\r\n", rank+1, client.Name, client.Snake.Score, bar, crown)
 	}
 
-	scoreText += "\n"
-	return scoreText
+	scoreBuilder.WriteString("\n")
+	return scoreBuilder.String()
 }
