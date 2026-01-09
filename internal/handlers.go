@@ -126,6 +126,24 @@ func getKeypresses(client *Client, ctx context.Context) {
 }
 
 func (b *Board) Run(w http.ResponseWriter, r *http.Request) {
+
+}
+
+func (R *RoomManager) HandleCreate(w http.ResponseWriter, r *http.Request) {
+	room := NewRoom()
+
+	R.Rooms[room.ID] = room
+	go room.InitRoom()
+}
+
+func (R *RoomManager) HandleJoin(w http.ResponseWriter, r *http.Request) {
+	roomID := r.PathValue("roomID")
+	fmt.Println("got id:", roomID)
+	room := R.Rooms[roomID]
+	if room == nil {
+		fmt.Println("nil room")
+		return
+	}
 	conn, err := websocket.Accept(w, r, &websocket.AcceptOptions{
 		InsecureSkipVerify: true,
 	})
@@ -140,12 +158,12 @@ func (b *Board) Run(w http.ResponseWriter, r *http.Request) {
 	}
 
 	defer func() {
-		b.removeClient(client)
+		room.Board.removeClient(client)
 		conn.Close(websocket.StatusNormalClosure, "client left")
 	}()
 
 	client.Snake.Init()
-	b.addClient(client)
+	room.Board.addClient(client)
 
 	getKeypresses(client, context.Background())
 }

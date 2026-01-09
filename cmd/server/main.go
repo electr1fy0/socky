@@ -18,16 +18,18 @@ const (
 )
 
 func main() {
-
-	room := internal.NewRoom()
-	go room.InitRoom()
+	roomManager := &internal.RoomManager{
+		Rooms: make(map[string]*internal.Room),
+	}
 
 	port := "8080"
 	if p := os.Getenv("PORT"); p != "" {
 		port = p
 	}
 
-	http.HandleFunc("/", room.Board.Run)
+	http.HandleFunc("/create", roomManager.HandleCreate)
+	http.HandleFunc("/join/{roomID}", roomManager.HandleJoin)
+
 	fmt.Printf("Starting server at port %s...\n", port)
 
 	log.Fatal(http.ListenAndServe(":"+port, nil))

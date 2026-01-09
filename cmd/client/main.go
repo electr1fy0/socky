@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"os"
 	"time"
 
@@ -14,21 +15,35 @@ import (
 var (
 	oldState *term.State
 	err      error
-	url      = "ws://localhost:8080/"
-	name     string
-	game     Message
+	// url      = "ws://localhost:8080/"
+	name string
+	game Message
 )
 
 const (
 	writeWait = time.Second * 5
 )
 
+func createRoom(_path string) {
+
+	resp, _ := http.Get("http://localhost:8080/create")
+
+	fmt.Println(resp)
+	resp.Body.Close()
+}
+
 func main() {
-	if len(os.Args) >= 2 && os.Args[1] == "internet" {
-		if u := os.Getenv("SOCKY_SERVER_URL"); u != "" {
-			url = u
-		}
+
+	path := os.Args[1]
+	if "create" == path {
+		createRoom(path)
+		return
 	}
+	// if len(os.Args) >= 2 && os.Args[1] == "internet" {
+	// 	if u := os.Getenv("SOCKY_SERVER_URL"); u != "" {
+	// 		url = u
+	// 	}
+	// }
 	Clear()
 
 	WelcomeBanner()
@@ -37,7 +52,7 @@ func main() {
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 
-	conn, _, err := websocket.Dial(ctx, url, nil)
+	conn, _, err := websocket.Dial(ctx, path, nil)
 	defer cancel()
 	if err != nil {
 		fmt.Println("Server is not ready.")
