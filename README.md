@@ -20,8 +20,8 @@ graph TD
     subgraph Socky Server
         S[Go Socky Server]
         subgraph Game Rooms
-            R1[Room 1 (Game Loop)]
-            R2[Room 2 (Game Loop)]
+            R1["Room 1 (Game Loop)"]
+            R2["Room 2 (Game Loop)"]
         end
     end
 
