@@ -10,13 +10,12 @@ Socky is a real-time, multiplayer snake game playable directly in your terminal.
 
 ## Features
 
--   **Real-time Multiplayer:** Play against friends in live, interactive game sessions.
--   **Private Game Rooms:** Create and join unique rooms for private matches.
--   **Dynamic Game Board:** Visually engaging terminal graphics using Unicode symbols.
--   **Collision Detection:** Players die upon colliding with walls or other snakes.
--   **Live Scoreboard:** Real-time scores streamed concurrently to all players.
--   **Intuitive Controls:** Simple keyboard inputs for snake movement.
-
+- Real-time multiplayer gameplay
+- Private game rooms
+- Unicode-based terminal graphics
+- Wall and snake collision handling
+- Live, shared scoreboard
+- Keyboard-driven controls
 ## Getting Started
 
 ### Prerequisites

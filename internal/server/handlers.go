@@ -67,7 +67,9 @@ func (R *RoomManager) HandleCreate(w http.ResponseWriter, r *http.Request) {
 	resp := map[string]string{
 		"ID": room.ID,
 	}
-	json.NewEncoder(w).Encode(resp)
+	if err := json.NewEncoder(w).Encode(resp); err != nil {
+		log.Println("Error encoding response:", err)
+	}
 	go room.InitGame()
 }
 

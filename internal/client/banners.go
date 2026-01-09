@@ -30,7 +30,9 @@ func WelcomeBanner() {
 }
 
 func GameOverBanner() {
-	term.Restore(0, oldState)
+	if err := term.Restore(0, oldState); err != nil {
+		panic(err)
+	}
 	stateRestored = true
 
 	boldRed := "\033[1;31m"

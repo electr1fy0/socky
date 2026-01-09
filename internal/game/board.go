@@ -111,7 +111,10 @@ func (b *Board) Update() {
 	for _, c := range toRemove {
 		var over = Message{"over", b.Grid, b.Clients}
 		writeCtx, cancel := context.WithTimeout(context.Background(), writeWait)
-		wsjson.Write(writeCtx, c.Conn, over)
+		if err := wsjson.Write(writeCtx, c.Conn, over); err != nil {
+			cancel()
+			continue
+		}
 		cancel()
 		b.RemoveClient(c)
 		c.Conn.Close(websocket.StatusNormalClosure, "snake died")

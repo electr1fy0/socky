@@ -34,7 +34,9 @@ func sendKeystrokes(conn *websocket.Conn) {
 	buf := make([]byte, 1)
 
 	for {
-		os.Stdin.Read(buf)
+		if _, err := os.Stdin.Read(buf); err != nil {
+			return
+		}
 		switch string(buf) {
 		case "q":
 			conn.Close(websocket.StatusNormalClosure, "closing from client")
@@ -42,7 +44,9 @@ func sendKeystrokes(conn *websocket.Conn) {
 		case "c":
 			CreateRoom()
 		}
-		conn.Write(ctx, websocket.MessageText, buf)
+		if err := conn.Write(ctx, websocket.MessageText, buf); err != nil {
+			return
+		}
 	}
 }
 
@@ -55,7 +59,10 @@ func CreateRoom() string {
 	defer resp.Body.Close()
 	var data struct{ ID string }
 
-	json.NewDecoder(resp.Body).Decode(&data)
+	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
+		fmt.Println("failed to decode response:", err)
+		return ""
+	}
 	return data.ID
 
 }
@@ -122,7 +129,9 @@ func InitiateGame() {
 			GameOverBanner()
 			return
 		}
-		json.Unmarshal(msg, &message)
+		if err := json.Unmarshal(msg, &message); err != nil {
+			continue
+		}
 		if message.Type == "over" {
 			GameOverBanner()
 			return
