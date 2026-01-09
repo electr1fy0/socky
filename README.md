@@ -11,7 +11,7 @@ Socky is a real-time, multiplayer snake game playable directly in your terminal.
 ## Architecture
 
 ```mermaid
-graph TD
+graph LR
     subgraph Clients
         P1[Player 1]
         P2[Player 2]
