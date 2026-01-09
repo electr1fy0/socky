@@ -1,9 +1,11 @@
-package main
+package client
 
 import (
 	"fmt"
 	"slices"
 	"strings"
+
+	"github.com/electr1fy0/socky/internal/game"
 )
 
 var (
@@ -28,29 +30,29 @@ func RenderGame() string {
 	var output strings.Builder
 
 	output.WriteString("\n\n\t╔")
-	for i := 0; i <= len(game.Grid[0])*2; i++ {
+	for range len(message.Grid[0]) * 2 {
 		output.WriteString("═")
 	}
 	output.WriteString("╗\t\r\n")
 
 	shadowColor := "\033[38;5;240m"
-	board := make([][]string, len(game.Grid))
+	board := make([][]string, len(message.Grid))
 	for i := range board {
-		board[i] = make([]string, len(game.Grid[0]))
+		board[i] = make([]string, len(message.Grid[0]))
 		for j := range board[i] {
 			board[i][j] = "  "
 		}
 	}
 
-	for i := 0; i < len(game.Grid); i++ {
-		for j := 0; j < len(game.Grid[0]); j++ {
-			if game.Grid[i][j] == "f" {
+	for i := 0; i < len(message.Grid); i++ {
+		for j := 0; j < len(message.Grid[0]); j++ {
+			if message.Grid[i][j] == "f" {
 				board[i][j] = foodColor + "◆ " + resetColor
 			}
 		}
 	}
 
-	for _, client := range game.Clients {
+	for _, client := range message.Clients {
 		color := snakeColors[client.Color]
 		for _, body := range client.Snake.Body {
 			symbol := "█ "
@@ -90,10 +92,10 @@ func renderScoreboard() string {
 	bold := "\033[1m"
 	scoreBuilder.WriteString("\n\t " + bold + "------------------------------ SCOREBOARD ------------------------------" + resetColor + "\r\n\n")
 
-	clients := make([]*Client, len(game.Clients))
-	copy(clients, game.Clients)
+	clients := make([]*game.Client, len(message.Clients))
+	copy(clients, message.Clients)
 
-	slices.SortFunc(clients, func(a, b *Client) int {
+	slices.SortFunc(clients, func(a, b *game.Client) int {
 		return b.Snake.Score - a.Snake.Score
 	})
 

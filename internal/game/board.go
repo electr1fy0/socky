@@ -1,4 +1,4 @@
-package internal
+package game
 
 import (
 	"context"
@@ -6,10 +6,25 @@ import (
 	"fmt"
 	"math/rand/v2"
 	"slices"
+	"time"
 
 	"github.com/coder/websocket"
 	"github.com/coder/websocket/wsjson"
 )
+
+const (
+	writeWait = time.Second * 5
+)
+
+var snakeColors = []string{
+	"red",
+	"yellow",
+	"green",
+	"blue",
+	"magenta",
+	"cyan",
+	"white",
+}
 
 func (b *Board) GenerateFood() {
 	x := rand.IntN(b.Rows)
@@ -91,7 +106,6 @@ func (b *Board) Update() {
 			c.Snake.Body = append([]Point{c.Snake.Tail}, c.Snake.Body...)
 		}
 		b.Grid[c.Snake.Head.X][c.Snake.Head.Y] = "h"
-
 	}
 
 	for _, c := range toRemove {
@@ -99,7 +113,7 @@ func (b *Board) Update() {
 		writeCtx, cancel := context.WithTimeout(context.Background(), writeWait)
 		wsjson.Write(writeCtx, c.Conn, over)
 		cancel()
-		b.removeClient(c)
+		b.RemoveClient(c)
 		c.Conn.Close(websocket.StatusNormalClosure, "snake died")
 	}
 }
@@ -112,4 +126,65 @@ func (b *Board) ToJSON() ([]byte, error) {
 
 func Clear() {
 	fmt.Printf("\033[H\033[2J")
+}
+
+
+
+func (b *Board) AddClient(client *Client) {
+	client.Color = snakeColors[(len(b.Clients)+1)%len(snakeColors)]
+	b.mu.Lock()
+	b.Clients = append(b.Clients, client)
+	b.InsertSnake(&client.Snake)
+
+	b.mu.Unlock()
+}
+
+func (b *Board) BroadCast() {
+	b.mu.RLock()
+	clients := make([]*Client, len(b.Clients))
+
+	copy(clients, b.Clients)
+	b.mu.RUnlock()
+	scores := make(map[string]int)
+	colors := make(map[string]string)
+
+	msg := Message{"normal", b.Grid, clients}
+	data, err := json.Marshal(msg)
+	if err != nil {
+		fmt.Println("error marshalling:", err)
+		return
+	}
+	for _, client := range clients {
+		scores[client.Name] = client.Snake.Score
+		colors[client.Name] = client.Color
+	}
+	for _, client := range clients {
+		writeCtx, cancel := context.WithTimeout(context.Background(), writeWait)
+		if err := client.Conn.Write(writeCtx, websocket.MessageText, data); err != nil {
+			cancel()
+			b.RemoveClient(client)
+			client.Conn.Close(websocket.StatusAbnormalClosure, "slow client")
+			return
+		}
+		cancel()
+	}
+}
+
+func (b *Board) RemoveClient(client *Client) {
+	b.mu.Lock()
+
+	for i, c := range b.Clients {
+		if c.ID == client.ID {
+			for _, point := range c.Snake.Body {
+				if point.X >= 0 && point.X < b.Rows && point.Y >= 0 && point.Y < b.Cols {
+					b.Grid[point.X][point.Y] = "·"
+				}
+			}
+			b.Grid[c.Snake.Tail.X][c.Snake.Tail.Y] = "·"
+			b.Clients = append(b.Clients[:i], b.Clients[i+1:]...)
+			b.SnakeCount--
+			break
+		}
+	}
+	b.mu.Unlock()
 }

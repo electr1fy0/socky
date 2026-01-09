@@ -1,11 +1,12 @@
-package main
+package client
 
 import (
 	"fmt"
-	"os"
 
 	"golang.org/x/term"
 )
+
+var oldState *term.State
 
 func WelcomeBanner() {
 	green := "\033[1;32m"
@@ -29,7 +30,9 @@ func WelcomeBanner() {
 }
 
 func GameOverBanner() {
-	term.Restore(int(os.Stdin.Fd()), oldState)
+	term.Restore(0, oldState)
+	stateRestored = true
+
 	boldRed := "\033[1;31m"
 
 	banner := `

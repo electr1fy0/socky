@@ -1,4 +1,4 @@
-package internal
+package game
 
 func (s *Snake) Init() {
 	s.Body = make([]Point, MinSnakeLength)
@@ -24,14 +24,11 @@ func (s *Snake) Move() {
 		newHead = Point{s.Head.X - 1, s.Head.Y}
 	case Down:
 		newHead = Point{s.Head.X + 1, s.Head.Y}
-
 	case Left:
 		newHead = Point{s.Head.X, s.Head.Y - 1}
-
 	case Right:
 		newHead = Point{s.Head.X, s.Head.Y + 1}
 	}
 
 	s.shift(newHead)
-
 }

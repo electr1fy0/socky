@@ -1,4 +1,4 @@
-package internal
+package game
 
 import (
 	"sync"
@@ -48,6 +48,7 @@ type Client struct {
 	Color    string          `json:"color"`
 	Conn     *websocket.Conn `json:"-"`
 }
+
 type Message struct {
 	Type    string     `json:"type"`
 	Grid    [][]string `json:"grid"`

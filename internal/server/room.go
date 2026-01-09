@@ -1,4 +1,4 @@
-package internal
+package server
 
 import (
 	"fmt"
@@ -6,6 +6,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+
+	"github.com/electr1fy0/socky/internal/game"
 )
 
 const (
@@ -15,10 +17,18 @@ const (
 	TickRate    = 150 * time.Millisecond
 )
 
+type RoomState int
+
+const (
+	Lobby RoomState = iota
+	Game
+)
+
 type Room struct {
 	ID string
 
-	Board  *Board
+	State  RoomState
+	Board  *game.Board
 	ticker *time.Ticker
 	done   chan struct{}
 }
@@ -29,7 +39,7 @@ type RoomManager struct {
 }
 
 func NewRoom() *Room {
-	b := &Board{}
+	b := &game.Board{}
 	b.Init(boardHeight, boardWidth)
 	id := uuid.NewString()
 	fmt.Println("Room ID: ", id)
@@ -41,7 +51,7 @@ func NewRoom() *Room {
 	}
 }
 
-func (R *Room) InitRoom() {
+func (R *Room) InitGame() {
 	tick := time.Tick(TickRate)
 	foodTick := time.Tick(FoodPeriod)
 	for {
