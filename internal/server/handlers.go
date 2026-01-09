@@ -18,7 +18,11 @@ func getKeypresses(client *game.Client, ctx context.Context) {
 		_, msg, err := client.Conn.Read(ctx)
 
 		if err != nil {
-			fmt.Println("Err reading:", err)
+			if websocket.CloseStatus(err) == websocket.StatusNormalClosure {
+				fmt.Println("Dropped client / Client left")
+			} else {
+				fmt.Println("Err reading:", err)
+			}
 			break
 		}
 		msgString := string(msg)

@@ -1,6 +1,6 @@
-# Socky
+# Socky: Multiplayer Terminal Snake
 
-Terminal-based multiplayer Snake game built with Go and WebSockets.
+Socky is a real-time, multiplayer snake game playable directly in your terminal. Challenge friends in private rooms, control your snake with simple keypresses, and experience fast-paced, dynamic gameplay.
 
 ## Screenshots
 <div style="gap:10px;">
@@ -8,24 +8,106 @@ Terminal-based multiplayer Snake game built with Go and WebSockets.
 <img style="width: 60%; height="auto" alt="Screenshot 2025-09-18 at 11 41 03" src="https://github.com/user-attachments/assets/e89495ae-e4e8-4ef9-9828-6f398c3f6db6" />
 </div>
 
+## Architecture
 
-## Features
-- Real-time multiplayer: multiple players on the same board
-- Terminal graphics using Unicode symbols
-- Collision detection: players die on walls or each other
-- Live scoreboard streamed to all players concurrently
+```mermaid
+graph TD
+    subgraph Clients
+        P1[Player 1 Client]
+        P2[Player 2 Client]
+    end
 
-## Usage
-```bash
-# Start server
-go run cmd/server/main.go
+    subgraph Socky Server
+        S[Go Socky Server]
+        subgraph Game Rooms
+            R1[Room 1 (Game Loop)]
+            R2[Room 2 (Game Loop)]
+        end
+    end
 
-# Connect players
-go run cmd/client/main.go
+    P1 -- Connects to --> S
+    P2 -- Connects to --> S
+
+    S -- Handles HTTP Requests --> R1
+    S -- Handles HTTP Requests --> R2
+
+    R1 -- Manages Players & Game State --> P1, P2 (via S)
+    R2 -- Manages Players & Game State --> P1, P2 (via S)
+
+    S -- Establishes WebSockets --> R1
+    S -- Establishes WebSockets --> R2
+    R1 -- Broadcasts Game Updates & Receives Input --> P1, P2 (via S through WebSockets)
+    R2 -- Broadcasts Game Updates & Receives Input --> P1, P2 (via S through WebSockets)
 ```
 
+## Features
+
+-   **Real-time Multiplayer:** Play against friends in live, interactive game sessions.
+-   **Private Game Rooms:** Create and join unique rooms for private matches.
+-   **Dynamic Game Board:** Visually engaging terminal graphics using Unicode symbols.
+-   **Collision Detection:** Players die upon colliding with walls or other snakes.
+-   **Live Scoreboard:** Real-time scores streamed concurrently to all players.
+-   **Intuitive Controls:** Simple keyboard inputs for snake movement.
+
+## Getting Started
+
+### Prerequisites
+
+-   [Go](https://golang.org/dl/) (Go 1.22+)
+
+### Installation
+
+1.  Clone the repository:
+
+    ```bash
+    git clone https://github.com/your-username/socky.git
+    cd socky
+    ```
+
+2.  Install dependencies:
+
+    ```bash
+    go mod tidy
+    ```
+
+### Usage
+
+1.  **Start the Server:**
+
+    ```bash
+    go run cmd/server/main.go
+    ```
+    The server will start on `http://localhost:8080`.
+
+2.  **Create a Game Room (from a client terminal):**
+
+    ```bash
+    go run cmd/client/main.go create
+    ```
+    This command will create a new room and print its `ROOM_ID`. Make a note of this ID.
+
+3.  **Join a Game Room (from a client terminal):**
+
+    ```bash
+    go run cmd/client/main.go ws://localhost:8080/join/<ROOM_ID>
+    ```
+    Replace `<ROOM_ID>` with the ID obtained in the previous step. Multiple players can join the same room.
+
 ## Controls
-- **WASD** or **HJKL** to move
+
+-   **WASD** or **HJKL** to move
+-   **Q** to quit the game
 
 ## Dependencies
-- `github.com/gorilla/websocket`
+
+-   `github.com/coder/websocket`
+-   `github.com/google/uuid`
+-   `golang.org/x/term`
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a pull request.
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
